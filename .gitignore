@@ -25,3 +25,10 @@ faiss_index/
 Thumbrel.db
 Ehthumbs.db
 Log.txt
+# Machine Learning weights and cache models
+models/
+.cache/
+huggingface/
+*.safetensors
+*.bin
+*.pt

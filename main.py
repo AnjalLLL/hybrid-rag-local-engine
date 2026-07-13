@@ -17,6 +17,11 @@ def build_parser() -> argparse.ArgumentParser:
     ingest_parser = subparsers.add_parser("ingest", help="Build the hybrid index from files in ./data/.")
     ingest_parser.add_argument("--rebuild", action="store_true", help="Force a fresh index build.")
 
+    subparsers.add_parser(
+        "fetch-models",
+        help="Download the embedding and reranker models into ./models/. Needs network; run once.",
+    )
+
     query_parser = subparsers.add_parser("query", help="Ask a question against the local index.")
     query_parser.add_argument("question", nargs="?", help="Question to ask. Omit for interactive mode.")
     query_parser.add_argument(
@@ -25,17 +30,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     query_parser.add_argument(
         "--ollama-model",
-        default="qwen2.5-coder:7b",
-        help="Ollama model name to use (default: qwen2.5-coder:7b).",
+        help="Ollama model name to use (default: auto-detect an installed model).",
+    )
+    query_parser.add_argument(
+        "--top-k",
+        type=int,
+        help="Number of context chunks to send to the model.",
     )
 
     return parser
 
 
-def run_query(question: str | None, model_path: str | None, ollama_model: str) -> int:
+def run_query(
+    question: str | None,
+    model_path: str | None,
+    ollama_model: str | None,
+    top_k: int | None,
+) -> int:
     """Run a single query or start an interactive REPL."""
 
-    from src.query import RagQueryEngine
+    from src.query import TOP_K, RagQueryEngine
+
+    resolved_top_k = top_k or TOP_K
 
     try:
         engine = RagQueryEngine(model_path=model_path, ollama_model=ollama_model)
@@ -46,8 +62,10 @@ def run_query(question: str | None, model_path: str | None, ollama_model: str) -
         print(f"Failed to load the local embedding model: {exc}")
         return 1
 
+    print(f"Using Ollama model: {engine.ollama_model}")
+
     if question:
-        return engine.answer(question)
+        return engine.answer(question, top_k=resolved_top_k)
 
     print("Interactive mode. Press Ctrl-C to exit.")
     try:
@@ -55,11 +73,12 @@ def run_query(question: str | None, model_path: str | None, ollama_model: str) -
             user_question = input("\nQuestion> ").strip()
             if not user_question:
                 continue
-            engine.answer(user_question)
+            engine.answer(user_question, top_k=resolved_top_k)
             print()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
         print("\nExiting.")
-        return 0
+
+    return 0
 
 
 def main() -> int:
@@ -73,8 +92,12 @@ def main() -> int:
         from src.ingest import build_index
 
         return build_index(rebuild=args.rebuild)
+    if args.command == "fetch-models":
+        from src.utils import fetch_models
+
+        return fetch_models()
     if args.command == "query":
-        return run_query(args.question, args.model_path, args.ollama_model)
+        return run_query(args.question, args.model_path, args.ollama_model, args.top_k)
 
     parser.print_help()
     return 1
