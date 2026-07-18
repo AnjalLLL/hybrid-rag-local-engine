@@ -44,6 +44,11 @@ RRF_K = 60
 DENSE_WEIGHT = 1.0
 BM25_WEIGHT = 0.7
 MAX_CHUNK_CHARS = 1500
+# Total retrieved-context budget stays roughly constant regardless of top_k, so a bigger
+# top_k (more chunks for a long question) doesn't linearly balloon the volume of context
+# sitting between the rules and the question -- a big context-to-question ratio is what
+# lets the model lose track of a short, specific instruction inside the question.
+CONTEXT_CHAR_BUDGET = 9000
 RETRY_CHUNK_CHARS = 350
 OLLAMA_NUM_CTX = 8192
 RETRY_OLLAMA_NUM_CTX = 2048
@@ -58,9 +63,25 @@ GENERATION_OPTIONS = {
 }
 
 MARKS_TAG_RE = re.compile(r"\(?\s*(\d+)\s*marks?\s*\)?|\[\s*(\d+)\s*\]", re.IGNORECASE)
-SUB_PART_RE = re.compile(r"(?:^|\s|\()([a-h])\)\s*", re.IGNORECASE)
+# Matches "a)", "(a)", and "a." (the last one requires trailing whitespace so it doesn't
+# fire on abbreviations like "e.g." or "i.e.").
+SUB_PART_RE = re.compile(r"(?:^|\s|\()([a-h])(?:\)|\.\s)\s*", re.IGNORECASE)
 IDENTIFIER_CALL_RE = re.compile(r"\b([A-Za-z][A-Za-z0-9_.]*)\s*\(")
 PROPER_NOUN_RE = re.compile(r"\b([A-Z][A-Za-z0-9]{2,})\b")
+
+# Topic-agnostic: these don't know what "single graph" or "four variables" mean, they just
+# flag that a clause carries an explicit count or a restrictive word, so it can be isolated
+# and echoed back verbatim instead of getting diluted inside a much larger block of retrieved
+# context. This is deliberately generic rather than a per-topic rule, so it catches whatever
+# minor constraint the next question happens to include, not just ones already anticipated.
+NUMBER_TOKEN_RE = re.compile(
+    r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b", re.IGNORECASE
+)
+CONSTRAINT_KEYWORD_RE = re.compile(
+    r"\b(single|only|exactly|each|every|both|same|combined|together|"
+    r"at least|at most|one graph|one plot|one line|in one)\b",
+    re.IGNORECASE,
+)
 
 
 class QuestionInfo(NamedTuple):
@@ -71,6 +92,7 @@ class QuestionInfo(NamedTuple):
     sub_parts: List[str]
     topic_tokens: List[str]
     identifier_tokens: List[str]
+    literal_requirements: List[str]
 
 
 def analyze_question(question: str, marks_override: Optional[int] = None) -> QuestionInfo:
@@ -99,6 +121,7 @@ def analyze_question(question: str, marks_override: Optional[int] = None) -> Que
         {match.group(1) for match in IDENTIFIER_CALL_RE.finditer(question)}
         | {match.group(1) for match in PROPER_NOUN_RE.finditer(question)}
     )
+    literal_requirements = extract_literal_requirements(question)
 
     return QuestionInfo(
         depth=depth,
@@ -106,7 +129,34 @@ def analyze_question(question: str, marks_override: Optional[int] = None) -> Que
         sub_parts=sub_parts,
         topic_tokens=topic_tokens,
         identifier_tokens=identifier_tokens,
+        literal_requirements=literal_requirements,
     )
+
+
+def extract_literal_requirements(question: str) -> List[str]:
+    """Pull out question clauses that carry an explicit count or a restrictive word.
+
+    This has no idea what "single graph" or "four variables" mean -- it just notices a
+    clause has a number or a word like "single"/"only"/"each" and keeps it as its own line,
+    verbatim, so it survives being placed next to a much larger block of retrieved context
+    instead of getting lost inside a long sentence. Works the same regardless of topic.
+    """
+
+    clauses = re.split(r"[;,]", question)
+    requirements: List[str] = []
+    seen: set = set()
+
+    for clause in clauses:
+        text = clause.strip()
+        if not text:
+            continue
+        if NUMBER_TOKEN_RE.search(text) or CONSTRAINT_KEYWORD_RE.search(text):
+            key = text.lower()
+            if key not in seen:
+                seen.add(key)
+                requirements.append(text)
+
+    return requirements
 
 
 def _split_sub_parts(question: str) -> List[str]:
@@ -180,8 +230,9 @@ class RagQueryEngine:
             print("No relevant context found in the index for this question.")
             return 1
 
+        chunk_char_limit = max(600, min(MAX_CHUNK_CHARS, CONTEXT_CHAR_BUDGET // resolved_top_k))
         prompt = build_prompt(
-            question, results, chunk_char_limit=MAX_CHUNK_CHARS, question_info=question_info
+            question, results, chunk_char_limit=chunk_char_limit, question_info=question_info
         )
 
         print("Answer:")
@@ -642,9 +693,19 @@ def build_prompt(
             f"{checklist}\n\n"
         )
 
+    requirements_section = ""
+    if question_info.literal_requirements:
+        requirements = "\n".join(f"- {req}" for req in question_info.literal_requirements)
+        requirements_section = (
+            "=== LITERAL REQUIREMENTS FROM THE QUESTION (each of these is a word-for-word "
+            "constraint pulled out of the question below because it is easy to miss -- your "
+            "answer must satisfy every one of them exactly, not just approximately) ===\n"
+            f"{requirements}\n\n"
+        )
+
     if question_info.depth == "long":
         depth_rule = (
-            "9. This is a long-form, multi-part exam question. For each sub-part listed above: "
+            "11. This is a long-form, multi-part exam question. For each sub-part listed above: "
             "give its code first, then a short exam-style interpretation for that sub-part "
             "directly underneath, before moving to the next sub-part. Reuse the same variable "
             "and model/object names you defined in earlier sub-parts -- never redefine or "
@@ -652,7 +713,7 @@ def build_prompt(
         )
     else:
         depth_rule = (
-            "9. This is a short exam question worth few marks. Answer directly and concisely: "
+            "11. This is a short exam question worth few marks. Answer directly and concisely: "
             "the minimum correct code needed, plus a one-line example of the syntax if it "
             "clarifies usage, and no extended prose."
         )
@@ -660,6 +721,8 @@ def build_prompt(
     return (
         "You are an R programming examiner and tutor. Answer the question exactly as asked, "
         "using the reference material below as your primary source.\n\n"
+        "The exact question you must answer (read it carefully -- every word can carry a "
+        f"requirement, e.g. a specific count or 'only one of X'): {question}\n\n"
         "RULES:\n"
         "1. Prefer the context. If the context covers the question, follow it and cite the "
         "source number like [2].\n"
@@ -676,21 +739,38 @@ def build_prompt(
         "levels() only works on a factor, not a numeric or character column). Apply "
         "na.omit()/complete.cases() before any test or model that breaks on missing values "
         "(for example shapiro.test, t.test, lm).\n"
-        "6. If the question has lettered sub-parts, answer under the same labels, for example "
+        "6. Distance-based methods (kmeans, hclust, knn, pam) treat variables with larger "
+        "numeric ranges as more important unless you scale() the numeric predictors first -- "
+        "do this whenever the question's variables are on different measurement units, which "
+        "is the normal case for real datasets.\n"
+        "7. If the question has lettered sub-parts, answer under the same labels, for example "
         "(a), (b), (c), and address every sub-part listed below -- do not skip any requested "
         "computation, plot, or interpretation. If it has no parts, do not invent part labels.\n"
-        "7. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
-        "contain an actual call that renders a plot -- do not stop at fitting the model.\n"
-        "8. Any interpretation must state the concrete pattern implied by the question/data "
-        "(for example, which group or cluster is higher or lower on which variable) -- do not "
-        "just restate the general statistical rule or definition.\n"
+        "8. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
+        "contain an actual call that renders a plot -- do not stop at fitting the model. If the "
+        "question asks for a 'single graph'/'single plot' over 3+ variables, base R plot(df, "
+        "col = ...) is wrong because it draws a scatterplot matrix, not one graph -- use a "
+        "function that reduces to one plot instead (e.g. factoextra::fviz_cluster() for "
+        "clustering, which projects onto 2 principal components).\n"
+        "9. Any interpretation must state the concrete pattern implied by the question/data, "
+        "naming the actual variables and a direction (higher/lower, increases/decreases). Bad: "
+        "'the data is divided into two clusters.' Good: 'cluster 1 has higher Murder and "
+        "Assault rates than cluster 2, so it groups higher-crime states separately from "
+        "lower-crime states.' Never submit an interpretation that would be equally true for "
+        "any dataset -- it must reference this question's specific variables.\n"
+        "10. Before writing your final answer, re-read the QUESTION and the LITERAL "
+        "REQUIREMENTS section below (when present) line by line, and check your draft answer "
+        "against each one -- a count, a word like 'single'/'only'/'each', or a sub-part is "
+        "easy to lose track of once you're deep in the code, so verify it explicitly rather "
+        "than trusting your first pass.\n"
         f"{depth_rule}\n"
-        "10. Output only the answer. Start directly with the code or the answer text. Do not "
+        "12. Output only the answer. Start directly with the code or the answer text. Do not "
         "restate these rules and do not write a preamble such as 'Here is the answer'.\n\n"
-        f"{reference_section}"
-        f"{checklist_section}"
         "=== CONTEXT ===\n"
         f"{context}\n\n"
+        f"{reference_section}"
+        f"{checklist_section}"
+        f"{requirements_section}"
         "=== QUESTION ===\n"
         f"{question}\n\n"
         "=== ANSWER ===\n"

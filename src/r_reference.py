@@ -38,17 +38,31 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
     ),
     "kmeans_plot": ReferenceEntry(
         keywords=("kmeans", "k-means", "cluster center", "cluster centre"),
-        required_library="# base R only, no package required",
+        required_library="library(factoextra)",
         canonical_skeleton=(
-            "km <- kmeans(df, centers = k)\n"
-            "plot(df, col = km$cluster, pch = 19, main = \"K-means clustering\")\n"
-            "points(km$centers, pch = 8, cex = 2, col = \"black\")  # adds cluster centers"
+            "us <- scale(df)  # standardize: kmeans is distance-based, so unscaled variables "
+            "with a larger numeric range would dominate the clustering\n"
+            "set.seed(123)\n"
+            "km <- kmeans(us, centers = k, nstart = 25)\n"
+            "library(factoextra)\n"
+            "fviz_cluster(km, data = us, show.clust.cent = TRUE, main = \"K-means clustering\")"
         ),
         pitfalls=(
-            "Prefer base R plot()+points() since that is what the course material actually "
-            "demonstrates. If you use factoextra::fviz_cluster(km, data = df) instead, the "
-            "ONLY real arguments are: data, geom, ellipse.type, repel (TRUE/FALSE, not "
-            "'repel_points'), main. There is no 'show_clusters' argument on fviz_cluster."
+            "plot(df, col = km$cluster) only draws ONE scatterplot when df has exactly 2 "
+            "numeric columns -- with 3+ variables (e.g. USArrests' Murder/Assault/UrbanPop/Rape) "
+            "it silently produces a scatterplot MATRIX instead, which is not 'a single graph', "
+            "and points(km$centers) then fails to overlay correctly because centers has one "
+            "column per variable, not just x/y. For 3+ variables, always use "
+            "factoextra::fviz_cluster(km, data = df) -- it reduces to 2 principal-component "
+            "dimensions internally and draws exactly one plot. Its ONLY real arguments are: "
+            "data, geom, ellipse.type, repel (TRUE/FALSE, not 'repel_points'), main, "
+            "show.clust.cent (TRUE/FALSE, not 'show_clusters' -- this is what actually adds "
+            "the cluster centroids to the plot). Base R plot()+points() is only correct when "
+            "clustering on exactly 2 numeric variables. Also scale() the data first when the "
+            "variables are on different measurement scales, and write an interpretation that "
+            "names the concrete pattern, e.g. 'cluster 1 = higher-crime states (higher "
+            "Murder/Assault), cluster 2 = lower-crime states' -- not 'the data is divided into "
+            "clusters'."
         ),
     ),
     "cluster_pkg": ReferenceEntry(
