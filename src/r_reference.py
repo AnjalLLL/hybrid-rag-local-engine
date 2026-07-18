@@ -1,11 +1,14 @@
-"""Hand-verified R reference snippets for topics the local corpus doesn't cover well.
+"""Hand-verified R reference snippets, checked against the actual ingested corpus.
 
-Hybrid retrieval can only surface what's in data/, and the corpus has no examples of
-multinom/nnet, the cluster package, influence diagnostics beyond plot(model), or
-ISLR2 usage. When a question hits one of those gaps, the model falls back to its own
-"standard R knowledge" (see build_prompt's rules) and has been observed inventing
-function arguments that don't exist (e.g. fviz_cluster(repel_points=...)). Each entry
-below is deliberately narrow and only lists arguments that are real.
+Every entry below was checked with a direct grep over faiss_index/chunks.pkl (the full
+extracted text of every PDF/PPTX/R file in data/, not just the .R scripts) for the literal
+function/library call before being written or edited. Where a pattern is confirmed present,
+the pitfalls text says which file/session it came from. Where something is NOT demonstrated
+anywhere in the corpus, the pitfalls text says so explicitly instead of presenting it as the
+taught approach -- retrieval can only surface what's actually in data/, and this file should
+not silently substitute the author's own general R knowledge for that when a genuinely
+different pattern is taught. Verified-taught patterns are preferred over "any correct R" ones
+even when both are technically valid, since exam grading likely follows what was taught.
 """
 
 from __future__ import annotations
@@ -31,38 +34,52 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "pred <- predict(model, newdata = df)"
         ),
         pitfalls=(
-            "Multinomial logistic regression is NOT glm(..., family = \"multinomial\") "
-            "(that family does not exist in base glm). Use nnet::multinom() instead. "
+            "Your materials use the nnet package, but only for fitting a feed-forward neural "
+            "network via nnet(y ~ ., data = df, size = 5, maxit = 200, decay = 0.01) "
+            "(R_Exam_Solutions_Both_Papers.pdf) -- multinom() itself is not demonstrated "
+            "anywhere in your retrieved materials. It is still the standard, correct nnet "
+            "function for multinomial logistic regression, so use it if the question is "
+            "specifically about multinomial logistic regression, but treat this as general R "
+            "knowledge rather than something shown verbatim in your notes. It is NOT "
+            "glm(..., family = \"multinomial\") -- that family does not exist in base glm. "
             "The response column must be a factor with 3+ levels."
         ),
     ),
     "kmeans_plot": ReferenceEntry(
         keywords=("kmeans", "k-means", "cluster center", "cluster centre"),
-        required_library="library(factoextra)",
+        required_library="library(cluster)  # this is Session 30's own k-means visualization",
         canonical_skeleton=(
             "us <- scale(df)  # standardize: kmeans is distance-based, so unscaled variables "
             "with a larger numeric range would dominate the clustering\n"
-            "set.seed(123)\n"
-            "km <- kmeans(us, centers = k, nstart = 25)\n"
-            "library(factoextra)\n"
-            "fviz_cluster(km, data = us, show.clust.cent = TRUE, main = \"K-means clustering\")"
+            "set.seed(11)\n"
+            "km <- kmeans(us, centers = k, nstart = 20)\n\n"
+            "# Verified from Session 30 (\"Visualizing clusters\", k-means on iris):\n"
+            "library(cluster)\n"
+            "clusplot(us[, c(\"var1\", \"var2\")], km$cluster,\n"
+            "         lines = 0, shade = TRUE, color = TRUE, labels = 2,\n"
+            "         plotchar = FALSE, span = TRUE,\n"
+            "         main = \"Cluster plot\", xlab = \"var1\", ylab = \"var2\")\n\n"
+            "# clusplot() draws with base graphics, so cluster centers can be layered on top:\n"
+            "points(km$centers[, c(\"var1\", \"var2\")], pch = 8, cex = 2, col = \"black\")"
         ),
         pitfalls=(
-            "plot(df, col = km$cluster) only draws ONE scatterplot when df has exactly 2 "
-            "numeric columns -- with 3+ variables (e.g. USArrests' Murder/Assault/UrbanPop/Rape) "
-            "it silently produces a scatterplot MATRIX instead, which is not 'a single graph', "
-            "and points(km$centers) then fails to overlay correctly because centers has one "
-            "column per variable, not just x/y. For 3+ variables, always use "
-            "factoextra::fviz_cluster(km, data = df) -- it reduces to 2 principal-component "
-            "dimensions internally and draws exactly one plot. Its ONLY real arguments are: "
-            "data, geom, ellipse.type, repel (TRUE/FALSE, not 'repel_points'), main, "
-            "show.clust.cent (TRUE/FALSE, not 'show_clusters' -- this is what actually adds "
-            "the cluster centroids to the plot). Base R plot()+points() is only correct when "
-            "clustering on exactly 2 numeric variables. Also scale() the data first when the "
-            "variables are on different measurement scales, and write an interpretation that "
-            "names the concrete pattern, e.g. 'cluster 1 = higher-crime states (higher "
-            "Murder/Assault), cluster 2 = lower-crime states' -- not 'the data is divided into "
-            "clusters'."
+            "The clusplot() call above, including every one of those arguments (lines, "
+            "shade, color, labels, plotchar, span), is copied from Session 30's own k-means "
+            "visualization on the iris dataset -- this is the actually-taught pattern, not a "
+            "guess. A simpler base-R alternative also appears in your materials "
+            "(exam_ref_unit5_unsupervised.R, PATTERN 6): plot(x, y, col = km$cluster, "
+            "pch = 19) + points(km$centers). factoextra::fviz_cluster() is NEVER demonstrated "
+            "anywhere in your retrieved materials (checked directly -- zero occurrences, even "
+            "though one unrelated file imports factoextra without ever calling an fviz_* "
+            "function) -- do not present it as the taught approach; only use it if the "
+            "question explicitly names factoextra or fviz_cluster. Either way, pick exactly "
+            "TWO of the requested variables for the axes -- passing the whole multi-column "
+            "data frame to plot() produces a scatterplot matrix, not a single graph, and "
+            "clusplot() on 3+ raw columns switches to an internal PCA projection instead of "
+            "the two named variables. scale() the data first when variables are on different "
+            "measurement scales, and write an interpretation that names the concrete pattern, "
+            "e.g. 'cluster 1 = higher-crime states (higher Murder/Assault), cluster 2 = "
+            "lower-crime states' -- not 'the data is divided into clusters'."
         ),
     ),
     "cluster_pkg": ReferenceEntry(
@@ -74,7 +91,14 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "sil <- silhouette(pam_res$clustering, dist(df))\n"
             "plot(sil)"
         ),
-        pitfalls="pam/agnes/silhouette all come from the cluster package, not base R or factoextra.",
+        pitfalls=(
+            "library(cluster) does appear in your materials (Session 30), but only for "
+            "clusplot() when visualizing k-means results -- pam()/agnes()/silhouette() "
+            "themselves are not demonstrated anywhere in your retrieved materials. They are "
+            "still standard, correct functions from the same package, so use them if the "
+            "question specifically asks for pam/agnes/silhouette, but treat this as general R "
+            "knowledge rather than something shown in your notes."
+        ),
     ),
     "regression_diagnostics": ReferenceEntry(
         keywords=("influence", "cooks.distance", "cook's distance", "hatvalues", "leverage", "residual"),
@@ -86,15 +110,25 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "hatvalues(model)\n"
             "influence.measures(model)"
         ),
-        pitfalls="Do not invent argument names for plot(model); its diagnostic panels are fixed by `which =`.",
+        pitfalls=(
+            "plot(model) itself is demonstrated in your materials "
+            "(exam_ref_data_and_regression_basics.R) -- do not invent argument names for it, "
+            "its diagnostic panels are fixed by `which =`. cooks.distance()/hatvalues()/"
+            "influence.measures() are not demonstrated in your retrieved materials beyond "
+            "that single plot(model) call; they are standard base-R stats functions, useful "
+            "if the question asks for them specifically."
+        ),
     ),
     "normality_missing": ReferenceEntry(
         keywords=("shapiro", "shapiro.test", "normality", "normal distribution"),
         required_library="# base R (stats package, always loaded)",
         canonical_skeleton="shapiro.test(na.omit(df$x))",
         pitfalls=(
-            "shapiro.test() errors on NA values. Always wrap the vector in na.omit() (or "
-            "filter with complete.cases() first) before passing it in."
+            "shapiro.test() is demonstrated in your materials "
+            "(exam_ref_statistical_tests.R and exam_ref_unit4_advanced_supervised.R). It "
+            "errors on NA values, so always wrap the vector in na.omit() (or filter with "
+            "complete.cases() first) before passing it in -- your materials use na.omit() "
+            "this same way elsewhere before other tests/models."
         ),
     ),
     "type_functions": ReferenceEntry(
@@ -105,14 +139,21 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "levels() only works on a factor, not a numeric or character vector -- convert "
             "with as.factor() first if needed. summary() on a numeric vector gives "
             "min/1Q/median/mean/3Q/max; on a factor or character vector it gives counts per "
-            "level/value, not the numeric summary."
+            "level/value, not the numeric summary. These are base-R behaviors, not specific "
+            "to any one file in your materials."
         ),
     ),
     "islr2": ReferenceEntry(
         keywords=("islr2", "islr"),
         required_library="library(ISLR2)",
         canonical_skeleton="library(ISLR2)\ndata(Smarket)  # or whichever ISLR2 dataset the question names",
-        pitfalls="ISLR2 datasets must be loaded with data(<name>) after library(ISLR2); do not read them from a CSV.",
+        pitfalls=(
+            "library(ISLR2) is used throughout ISLRv2_corrected_June_2023.pdf, your primary "
+            "textbook (15+ occurrences). ISLR2 datasets must be loaded with data(<name>) "
+            "after library(ISLR2); do not read them from a CSV. Note the ISLR2 package itself "
+            "is not installed in this environment, so --verify-r execution will fail on "
+            "library(ISLR2) with a missing-package error -- that's expected, not a code bug."
+        ),
     ),
     "ggplot2": ReferenceEntry(
         keywords=("ggplot", "ggplot2", "geom_point", "geom_bar", "geom_boxplot", "aes"),
@@ -123,9 +164,13 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "  labs(title = \"Title\", x = \"X\", y = \"Y\")"
         ),
         pitfalls=(
-            "Column names inside aes() are unquoted (aes(x = Sepal.Length), not "
-            "aes(x = \"Sepal.Length\")). Real geoms include geom_point, geom_boxplot, "
-            "geom_bar, geom_histogram, geom_line -- there is no geom_cluster or geom_kmeans."
+            "ggplot2 is heavily used across your materials (100+ occurrences, especially "
+            "R-for-Data-Science.pdf and exam_ref_unit3_visualization.R). Column names inside "
+            "aes() are unquoted (aes(x = Sepal.Length), not aes(x = \"Sepal.Length\")). Real "
+            "geoms include geom_point, geom_boxplot, geom_bar, geom_histogram, geom_line -- "
+            "there is no geom_cluster or geom_kmeans. Note that for k-means cluster plots "
+            "specifically, your materials use base R/clusplot() instead of ggplot2 -- see the "
+            "k-means reference entry."
         ),
     ),
     "caret_confusion": ReferenceEntry(
@@ -137,22 +182,34 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "confusionMatrix(as.factor(pred), as.factor(test$y))"
         ),
         pitfalls=(
-            "confusionMatrix() requires both arguments to be factors with identical levels "
-            "(same order) -- passing raw numeric predictions or probabilities directly errors."
+            "confusionMatrix() is demonstrated in your materials (Madhu Ajit Pandey R "
+            "Presentation, R_Exam_Solutions_Both_Papers.pdf, Session 23). It requires both "
+            "arguments to be factors with identical levels (same order) -- passing raw "
+            "numeric predictions or probabilities directly errors."
         ),
     ),
     "decision_tree": ReferenceEntry(
         keywords=("rpart", "decision tree", "rpart.plot"),
-        required_library="library(rpart)\nlibrary(rpart.plot)",
+        required_library="library(rpart)",
         canonical_skeleton=(
             "library(rpart)\n"
             "model <- rpart(y ~ ., data = df, method = \"class\")\n"
-            "library(rpart.plot)\n"
-            "rpart.plot(model)"
+            "pred <- predict(model, newdata = test, type = \"class\")\n"
+            "printcp(model)\n\n"
+            "# Plotting: your materials only demonstrate base R plot()+text() for this\n"
+            "# (ISLR2 ch.8 tree.carseats/tree.boston examples, Session 28.1):\n"
+            "plot(model)\n"
+            "text(model, pretty = 0)"
         ),
         pitfalls=(
-            "method = \"class\" is required for a classification tree (use \"anova\" for "
-            "regression trees). rpart.plot() is a separate package from rpart itself."
+            "rpart.plot (the package) is never demonstrated anywhere in your retrieved "
+            "materials -- do not present it as the taught approach. Your materials plot trees "
+            "with base R's plot()+text(pretty=0) instead (verified in ISLR2's tree.carseats/"
+            "tree.boston examples and Session 28.1, though those specific pages use the "
+            "`tree` package's tree() function rather than rpart() -- the same plot()/text() "
+            "S3 methods work on an rpart object too). rpart() itself with method = \"class\" "
+            "is demonstrated in R_Exam_Solutions_Both_Papers.pdf; method = \"class\" is "
+            "required for a classification tree (use \"anova\" for regression trees)."
         ),
     ),
     "random_forest": ReferenceEntry(
@@ -165,9 +222,10 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "varImpPlot(model)"
         ),
         pitfalls=(
-            "The response column must be a factor for classification (randomForest() runs "
-            "regression if y is numeric). importance = TRUE must be set before calling "
-            "importance()/varImpPlot()."
+            "randomForest()/varImpPlot() are demonstrated in your materials (ISLR2 ch.8, "
+            "R_Exam_Solutions_Both_Papers.pdf). The response column must be a factor for "
+            "classification (randomForest() runs regression if y is numeric). "
+            "importance = TRUE must be set before calling importance()/varImpPlot()."
         ),
     ),
     "knn": ReferenceEntry(
@@ -175,19 +233,24 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
         required_library="library(class)",
         canonical_skeleton="library(class)\npred <- knn(train = train_x, test = test_x, cl = train_y, k = k)",
         pitfalls=(
-            "knn() takes train/test/cl/k in that order; predictors should be scaled first "
-            "with scale(), and train_x/test_x must exclude the response column."
+            "knn() is demonstrated in your materials (ISLR2 ch.4). It takes train/test/cl/k "
+            "in that order; predictors should be scaled first with scale(), and "
+            "train_x/test_x must exclude the response column."
         ),
     ),
     "lda_qda": ReferenceEntry(
         keywords=("lda", "qda", "discriminant"),
         required_library="library(MASS)",
         canonical_skeleton="library(MASS)\nmodel <- lda(y ~ ., data = df)\npredict(model, newdata = df)$class",
-        pitfalls="predict.lda() returns a list; the predicted labels are in $class, not the object itself.",
+        pitfalls=(
+            "lda()/qda() are demonstrated in your materials (ISLR2 ch.4, Classification_Models "
+            "presentation). predict.lda() returns a list; the predicted labels are in $class, "
+            "not the object itself."
+        ),
     ),
     "roc_curve": ReferenceEntry(
         keywords=("roc", "auc", "proc", "rocr"),
-        required_library="library(pROC)  # or library(ROCR)",
+        required_library="library(pROC)  # or library(ROCR) -- both appear in your materials",
         canonical_skeleton=(
             "library(pROC)\n"
             "roc_obj <- roc(response = test$y, predictor = pred_prob)\n"
@@ -195,33 +258,46 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "auc(roc_obj)"
         ),
         pitfalls=(
-            "pROC::roc() needs predicted probabilities, not class labels. Don't mix pROC and "
-            "ROCR syntax in one script -- ROCR uses prediction()/performance() instead."
+            "Both APIs are demonstrated in your materials: pROC::roc() (Madhu Ajit Pandey "
+            "presentation, Session 27) and ROCR::prediction()/performance() (ISLR2 ch.9, "
+            "Session 25 and 27) -- either is fine, but pROC::roc() needs predicted "
+            "probabilities, not class labels, and you must not mix pROC and ROCR syntax "
+            "in one script."
         ),
     ),
     "pca_facto": ReferenceEntry(
         keywords=("factominer", "pca", "principal component"),
-        required_library="library(FactoMineR)\nlibrary(factoextra)",
+        required_library="library(FactoMineR)  # fit with this; visualize with base R, not factoextra",
         canonical_skeleton=(
             "library(FactoMineR)\n"
-            "pca_res <- PCA(df, graph = FALSE)\n"
-            "library(factoextra)\n"
-            "fviz_pca_ind(pca_res)\n"
-            "fviz_eig(pca_res)"
+            "pca_res <- PCA(df, graph = FALSE)\n\n"
+            "# Visualization: your materials use base R for this, not factoextra's fviz_* functions\n"
+            "pca_base <- prcomp(df, scale. = TRUE)\n"
+            "screeplot(pca_base, type = \"lines\", main = \"Scree Plot\")\n"
+            "biplot(pca_base)"
         ),
         pitfalls=(
-            "Base R alternative is prcomp(df, scale. = TRUE). PCA plots use "
-            "fviz_pca_ind/fviz_pca_var/fviz_eig -- fviz_cluster is for clustering, not PCA."
+            "FactoMineR::PCA() is demonstrated in your materials (PCA_Anjal_RollNo3.R, Madhu "
+            "Ajit Pandey presentation), but factoextra's fviz_pca_ind/fviz_pca_var/fviz_eig "
+            "are NEVER used anywhere in your retrieved materials (checked directly -- zero "
+            "occurrences, even in the one file that imports factoextra). Your materials "
+            "instead visualize PCA with base R screeplot(pca_model, type = \"lines\") and "
+            "biplot(pca_model) (exam_ref_unit5_unsupervised.R, exam_ref_pca_clustering.R, and "
+            "the ISLR2 textbook) -- use those instead of fviz_* calls unless the question "
+            "explicitly names factoextra."
         ),
     ),
     "igraph_network": ReferenceEntry(
         keywords=("igraph", "network", "social network", "graph.adjacency"),
         required_library="library(igraph)",
-        canonical_skeleton="library(igraph)\ng <- graph_from_data_frame(edges_df, directed = FALSE)\nplot(g)\ndegree(g)",
+        canonical_skeleton="library(igraph)\ng <- graph.data.frame(edges_df, directed = FALSE)\nplot(g)\ndegree(g)",
         pitfalls=(
-            "graph_from_data_frame() is the current function name (graph.data.frame() is a "
-            "deprecated alias). plot() on an igraph object uses igraph's own args "
-            "(vertex.size, vertex.label), not ggplot2 aesthetics."
+            "graph.data.frame() is what Session 18 actually uses (2 occurrences) -- match "
+            "that spelling even though it's technically a deprecated alias of the newer "
+            "graph_from_data_frame(), which also appears once in "
+            "exam_ref_unit3_visualization.R if you prefer the modern name; both work "
+            "identically. plot() on an igraph object uses igraph's own args (vertex.size, "
+            "vertex.label), not ggplot2 aesthetics."
         ),
     ),
     "arules_assoc": ReferenceEntry(
@@ -234,20 +310,29 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "inspect(sort(rules, by = \"lift\")[1:5])"
         ),
         pitfalls=(
-            "apriori() needs a transactions object, not a data frame -- convert first with "
-            "as(df, \"transactions\"). Thresholds go inside parameter = list(supp = ..., "
-            "conf = ...), not as top-level arguments."
+            "apriori() is demonstrated in your materials (Session 31, "
+            "exam_ref_unit5_unsupervised.R). It needs a transactions object, not a data frame "
+            "-- convert first with as(df, \"transactions\") (or build a list of item vectors "
+            "directly, as exam_ref_unit5_unsupervised.R does). Thresholds go inside "
+            "parameter = list(supp = ..., conf = ...), not as top-level arguments."
         ),
     ),
     "corr_plot": ReferenceEntry(
         keywords=("corrplot", "correlation matrix", "correlation plot"),
-        required_library="library(corrplot)",
+        required_library="# base R -- the corrplot package is never used in your materials",
         canonical_skeleton=(
             "corr_matrix <- cor(df[, sapply(df, is.numeric)])\n"
-            "library(corrplot)\n"
-            "corrplot(corr_matrix, method = \"circle\")"
+            "print(round(corr_matrix, 2))\n"
+            "pairs(df[, sapply(df, is.numeric)])  # base R scatterplot matrix, seen in ISLR2"
         ),
-        pitfalls="cor() only accepts numeric columns; subset with sapply(df, is.numeric) first or it errors on factors/characters.",
+        pitfalls=(
+            "The corrplot package is NEVER demonstrated anywhere in your retrieved materials "
+            "(checked directly -- zero occurrences) -- do not present corrplot() as the "
+            "taught approach for visualizing correlations. Your materials (ISLR2) use base R "
+            "pairs() for a scatterplot matrix instead, alongside a plain cor() table. cor() "
+            "only accepts numeric columns; subset with sapply(df, is.numeric) first or it "
+            "errors on factors/characters."
+        ),
     ),
     "svm_bayes": ReferenceEntry(
         keywords=("svm", "support vector", "naivebayes", "naive bayes"),
@@ -258,10 +343,12 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "pred <- predict(model, newdata = df)"
         ),
         pitfalls=(
-            "Valid svm() kernel values are only \"linear\", \"polynomial\", \"radial\", "
-            "\"sigmoid\" -- don't invent other kernel names. For naiveBayes(), use "
-            "e1071::naiveBayes(y ~ ., data = df); the separate naivebayes package has a "
-            "different function, naive_bayes(), with a different API."
+            "svm()/naiveBayes() are both demonstrated in your materials (ISLR2 ch.9, "
+            "R_Exam_Solutions_Both_Papers.pdf). Valid svm() kernel values are only "
+            "\"linear\", \"polynomial\", \"radial\", \"sigmoid\" -- don't invent other kernel "
+            "names. For naiveBayes(), use e1071::naiveBayes(y ~ ., data = df); the separate "
+            "naivebayes package (with a different function, naive_bayes()) is not used "
+            "anywhere in your materials -- stick with e1071::naiveBayes()."
         ),
     ),
 }

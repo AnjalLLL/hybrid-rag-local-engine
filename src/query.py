@@ -335,7 +335,19 @@ class RagQueryEngine:
     ) -> List[ChunkPayload]:
         """Retrieve the top chunks for a question."""
 
-        identifier_tokens = question_info.identifier_tokens if question_info else ()
+        identifier_tokens: List[str] = []
+        if question_info is not None:
+            # Topic keywords go first: they're curated, high-signal markers of "this is the
+            # taught technique" (e.g. "kmeans"), so they should claim a boost slot before
+            # generic identifiers like a dataset name that might just appear in passing on
+            # many unrelated pages. Otherwise a question about "USArrests" never pulls in
+            # the course's own worked k-means example just because it demonstrates on "iris"
+            # instead. This ties into whatever topics r_reference.py already knows about, so
+            # it generalizes to any topic added there, not just k-means.
+            for entry in match_reference_entries(question_info.topic_tokens):
+                identifier_tokens.extend(entry.keywords)
+            identifier_tokens.extend(question_info.identifier_tokens)
+
         return retrieve_chunks(
             question,
             self.embedder,
@@ -511,31 +523,58 @@ def _boost_identifier_matches(
     chunks: Sequence[ChunkPayload],
     candidate_indices: Sequence[int],
     identifier_tokens: Sequence[str],
-    max_boosted: int = 2,
+    max_boosted: int = 4,
 ) -> List[int]:
-    """Force-include chunks that exactly mention a question identifier (dataset/function name).
+    """Move chunks that exactly mention a question identifier/topic keyword to the front.
 
-    RRF fusion and reranking can push an exact-name match (e.g. "USArrests", "multinom(")
-    below the cutoff if the rest of the chunk isn't a strong semantic match. An exact
-    identifier hit is a strong, cheap signal, so pull a couple to the front of the list.
+    RRF fusion and cross-encoder reranking can both push an exact-name or exact-topic match
+    (e.g. "USArrests", "kmeans(") below the final top_k cutoff if the reranker judges other
+    chunks more semantically similar to the literal question wording -- this happens even
+    when the match is already present somewhere in ranked_indices, not just when it's
+    missing entirely, so a match already ranked low still needs promoting, not just chunks
+    that are absent.
+
+    Slots are allocated per distinct token (one chunk per token, in token order) rather than
+    as one shared budget -- a shared budget lets an early, common token (like a dataset name
+    that happens to appear on many pages) consume every slot before a later, more specific
+    token (like the actual method name) ever gets a turn.
     """
 
     lowered_tokens = [token.lower() for token in identifier_tokens if len(token) >= 3]
     if not lowered_tokens:
         return ranked_indices
 
-    already_ranked = set(ranked_indices)
     boosted: List[int] = []
-    for idx in candidate_indices:
-        if idx in already_ranked or idx in boosted:
-            continue
-        text = str(chunks[idx]["text"]).lower()
-        if any(token in text for token in lowered_tokens):
-            boosted.append(idx)
+    boosted_set: set = set()
+    for token in lowered_tokens:
         if len(boosted) >= max_boosted:
             break
+        # Prefer an actual runnable-code match (.R/.Rmd) over a PDF/slide match: a worked
+        # code example is what a student should mirror, and PDF theory pages tend to rank
+        # ahead of it in BM25 order just because there are more of them in the corpus.
+        code_match = None
+        any_match = None
+        for idx in candidate_indices:
+            if idx in boosted_set:
+                continue
+            text = str(chunks[idx]["text"]).lower()
+            if token not in text:
+                continue
+            if any_match is None:
+                any_match = idx
+            if str(chunks[idx]["metadata"].get("kind")) in ("r", "rmd") and code_match is None:
+                code_match = idx
+                break
+        chosen = code_match if code_match is not None else any_match
+        if chosen is not None:
+            boosted.append(chosen)
+            boosted_set.add(chosen)
 
-    return boosted + ranked_indices
+    if not boosted:
+        return ranked_indices
+
+    remainder = [idx for idx in ranked_indices if idx not in boosted_set]
+    return boosted + remainder
 
 
 def dedupe_indices(indices: Sequence[int], chunks: Sequence[ChunkPayload]) -> List[int]:
@@ -731,10 +770,11 @@ def build_prompt(
         "the notes. Never refuse just because the context is thin.\n"
         "3. Use only the variables, data, and file names given in the question. Do not invent "
         "data, column names, or file formats, and do not add steps that were not asked for.\n"
-        "4. Every non-base-R function must be preceded by an explicit, real library(pkg) call. "
-        "Never invent a function argument -- only use arguments that are genuinely documented "
-        "for that function. If the VERIFIED LIBRARY REFERENCE section below covers the topic, "
-        "use its exact function/argument names instead of guessing.\n"
+        "4. Every non-base-R function must be preceded by an explicit, real library(pkg) call, "
+        "and every library(pkg) call must be for a package you actually call a function from -- "
+        "no unused imports. Never invent a function argument -- only use arguments that are "
+        "genuinely documented for that function. If the VERIFIED LIBRARY REFERENCE section "
+        "below covers the topic, use its exact function/argument names instead of guessing.\n"
         "5. Check a variable's type before applying a type-specific function (for example, "
         "levels() only works on a factor, not a numeric or character column). Apply "
         "na.omit()/complete.cases() before any test or model that breaks on missing values "
@@ -748,10 +788,12 @@ def build_prompt(
         "computation, plot, or interpretation. If it has no parts, do not invent part labels.\n"
         "8. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
         "contain an actual call that renders a plot -- do not stop at fitting the model. If the "
-        "question asks for a 'single graph'/'single plot' over 3+ variables, base R plot(df, "
-        "col = ...) is wrong because it draws a scatterplot matrix, not one graph -- use a "
-        "function that reduces to one plot instead (e.g. factoextra::fviz_cluster() for "
-        "clustering, which projects onto 2 principal components).\n"
+        "question asks for a 'single graph'/'single plot' over 3+ variables, note that "
+        "plot(df, col = ...) on the WHOLE multi-column data frame is wrong because it draws a "
+        "scatterplot matrix, not one graph -- follow whatever single-plot approach the CONTEXT "
+        "and VERIFIED LIBRARY REFERENCE below actually demonstrate for this exact technique "
+        "(e.g. plotting two chosen variables in base R, or a dedicated multi-variable plotting "
+        "function) rather than guessing a library that isn't shown there.\n"
         "9. Any interpretation must state the concrete pattern implied by the question/data, "
         "naming the actual variables and a direction (higher/lower, increases/decreases). Bad: "
         "'the data is divided into two clusters.' Good: 'cluster 1 has higher Murder and "
