@@ -14,6 +14,20 @@ This project builds a local Retrieval-Augmented Generation (RAG) workflow for R 
 - **Honest ingest.** Files it cannot read (typically scanned, image-only PDFs) are reported by name instead of silently vanishing from the index.
 - **Auto model detection.** Picks a generation model that is actually installed in Ollama, preferring a code-tuned one.
 - **Near-duplicate filtering.** Overlapping chunks are dropped so the limited context is not spent twice on the same text.
+- **Exam-depth aware.** Auto-detects whether a question is a short, direct 3-mark question or a
+  long, multi-part 6-mark question (from an explicit marks tag or the number of lettered
+  sub-parts), and shapes the answer's length and format accordingly.
+- **Sub-part continuity.** Multi-part questions get every lettered sub-part extracted into an
+  explicit checklist so the model can't silently skip one, and are instructed to reuse the same
+  variable/model names across sub-parts instead of redefining them.
+- **Curated anti-hallucination reference.** A hand-verified library of correct package/function
+  usage (`src/r_reference.py`) for topics prone to invented arguments or missing `library()`
+  calls -- k-means/cluster plotting, `multinom`, `caret`, decision trees, random forest, `knn`,
+  `lda`/`qda`, ROC curves, PCA, `igraph`, `apriori`, and more -- is injected into the prompt
+  whenever a question matches, regardless of what retrieval finds.
+- **Optional execution validation.** With `--verify-r`, generated R code is actually run with
+  `Rscript`; a genuine code error triggers one bounded self-correction attempt, while
+  missing-data/missing-package errors (expected for a hypothetical exam dataset) are left alone.
 
 ## Performance
 
@@ -42,6 +56,25 @@ The query engine uses hybrid retrieval:
 5. Near-duplicate chunks are dropped so the few context slots are not spent twice on the same text.
 
 Chunking is content-aware: R code is chunked by lines so indentation and newlines survive, while prose is chunked by sentences.
+
+## Exam-aware answering
+
+Before retrieval runs, each question is analyzed (`analyze_question()` in `src/query.py`):
+
+- **Depth detection.** An explicit `(6 marks)` / `[3]` tag is used if present; otherwise the
+  question is classified as long/multi-part if it has 2+ lettered sub-parts (`a)`, `b)`, `c)`...),
+  short otherwise. Long questions get more retrieved context (`top_k=10` vs `6`) since they need
+  to be grounded across more sub-parts. Override the guess with `--marks 3` or `--marks 6`.
+- **Sub-part checklist.** Lettered sub-parts are split out and injected into the prompt as an
+  explicit list the model must fully address, anchoring the "reuse objects from earlier parts"
+  rule.
+- **Reference lookup.** Topic keywords from the question are matched against
+  `src/r_reference.py`; a match injects a verified, minimal-args code skeleton for that
+  function/package directly into the prompt, so the model has a correct example to follow even
+  when the retrieved course material doesn't cover that exact topic.
+- **Identifier boost.** Dataset and function names mentioned in the question (e.g. `USArrests`,
+  `multinom(`) are force-included in the retrieval candidates if an exact-match chunk exists,
+  even if fusion/reranking would have otherwise ranked it below the cutoff.
 
 ## Prerequisites
 
@@ -73,12 +106,17 @@ python3 -m venv .venv
 
 # Or start interactive mode
 .venv/bin/python main.py query
+
+# Force exam depth and verify the generated R code actually runs
+.venv/bin/python main.py query "Fit a multinomial logistic regression..." --marks 6 --verify-r
 ```
 
 Once `fetch-models` has run, everything works fully offline.
 
 Useful flags: `--ollama-model` to pick a model, `--top-k` to change how many chunks are sent to
-the model, and `--model-path` for a llama-cpp-python GGUF fallback if Ollama is down.
+the model, `--marks {3,6}` to force short/long exam-answer formatting instead of auto-detecting
+it, `--verify-r` to execute the generated R code with `Rscript` and request one self-correction
+on a real error, and `--model-path` for a llama-cpp-python GGUF fallback if Ollama is down.
 
 ## Folder descriptions
 

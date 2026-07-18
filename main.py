@@ -37,6 +37,18 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Number of context chunks to send to the model.",
     )
+    query_parser.add_argument(
+        "--marks",
+        type=int,
+        choices=(3, 6),
+        help="Force exam depth: 3 for a short direct answer, 6 for a long multi-part answer. "
+        "Omit to auto-detect from the question text.",
+    )
+    query_parser.add_argument(
+        "--verify-r",
+        action="store_true",
+        help="Run the generated R code with Rscript and request one correction if it errors.",
+    )
 
     return parser
 
@@ -46,12 +58,12 @@ def run_query(
     model_path: str | None,
     ollama_model: str | None,
     top_k: int | None,
+    marks: int | None,
+    verify_r: bool,
 ) -> int:
     """Run a single query or start an interactive REPL."""
 
-    from src.query import TOP_K, RagQueryEngine
-
-    resolved_top_k = top_k or TOP_K
+    from src.query import RagQueryEngine
 
     try:
         engine = RagQueryEngine(model_path=model_path, ollama_model=ollama_model)
@@ -65,7 +77,9 @@ def run_query(
     print(f"Using Ollama model: {engine.ollama_model}")
 
     if question:
-        return engine.answer(question, top_k=resolved_top_k)
+        return engine.answer(
+            question, top_k=top_k, marks_override=marks, verify_r=verify_r
+        )
 
     print("Interactive mode. Press Ctrl-C to exit.")
     try:
@@ -73,7 +87,9 @@ def run_query(
             user_question = input("\nQuestion> ").strip()
             if not user_question:
                 continue
-            engine.answer(user_question, top_k=resolved_top_k)
+            engine.answer(
+                user_question, top_k=top_k, marks_override=marks, verify_r=verify_r
+            )
             print()
     except (KeyboardInterrupt, EOFError):
         print("\nExiting.")
@@ -97,7 +113,14 @@ def main() -> int:
 
         return fetch_models()
     if args.command == "query":
-        return run_query(args.question, args.model_path, args.ollama_model, args.top_k)
+        return run_query(
+            args.question,
+            args.model_path,
+            args.ollama_model,
+            args.top_k,
+            args.marks,
+            args.verify_r,
+        )
 
     parser.print_help()
     return 1

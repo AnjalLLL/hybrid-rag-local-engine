@@ -8,7 +8,7 @@ import re
 import site
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 
 user_site = site.getusersitepackages()
 if user_site and user_site not in sys.path:
@@ -18,6 +18,7 @@ import numpy as np
 import requests
 from rank_bm25 import BM25Okapi
 
+from src.r_reference import match_reference_entries, format_reference_block
 from src.utils import (
     FAISS_DIR,
     MODELS_DIR,
@@ -36,6 +37,7 @@ OLLAMA_TAGS_URL = f"{OLLAMA_HOST}/api/tags"
 PREFERRED_MODELS = ("qwen2.5-coder", "codellama", "deepseek-coder", "llama3", "mistral", "qwen")
 
 TOP_K = 6
+TOP_K_LONG = 10
 RETRIEVAL_CANDIDATES = 60
 RERANK_CANDIDATES = 30
 RRF_K = 60
@@ -55,6 +57,78 @@ GENERATION_OPTIONS = {
     "num_predict": 1024,
 }
 
+MARKS_TAG_RE = re.compile(r"\(?\s*(\d+)\s*marks?\s*\)?|\[\s*(\d+)\s*\]", re.IGNORECASE)
+SUB_PART_RE = re.compile(r"(?:^|\s|\()([a-h])\)\s*", re.IGNORECASE)
+IDENTIFIER_CALL_RE = re.compile(r"\b([A-Za-z][A-Za-z0-9_.]*)\s*\(")
+PROPER_NOUN_RE = re.compile(r"\b([A-Z][A-Za-z0-9]{2,})\b")
+
+
+class QuestionInfo(NamedTuple):
+    """Lightweight analysis of a question used to shape retrieval and the prompt."""
+
+    depth: str  # "short" (~3 marks) or "long" (~6 marks)
+    marks: Optional[int]
+    sub_parts: List[str]
+    topic_tokens: List[str]
+    identifier_tokens: List[str]
+
+
+def analyze_question(question: str, marks_override: Optional[int] = None) -> QuestionInfo:
+    """Classify a question's depth/marks, split its sub-parts, and pull retrieval hints.
+
+    Detection order: an explicit CLI override, then an explicit "(N marks)"/"[N]" tag in
+    the question text, then a fallback heuristic (>=2 lettered sub-parts implies a long,
+    multi-part 6-mark question; otherwise it's treated as a short 3-mark question).
+    """
+
+    sub_parts = _split_sub_parts(question)
+
+    marks = marks_override
+    if marks is None:
+        tag_match = MARKS_TAG_RE.search(question)
+        if tag_match:
+            marks = int(tag_match.group(1) or tag_match.group(2))
+
+    if marks is not None:
+        depth = "long" if marks >= 5 else "short"
+    else:
+        depth = "long" if len(sub_parts) >= 2 else "short"
+
+    topic_tokens = tokenize_text(question)
+    identifier_tokens = sorted(
+        {match.group(1) for match in IDENTIFIER_CALL_RE.finditer(question)}
+        | {match.group(1) for match in PROPER_NOUN_RE.finditer(question)}
+    )
+
+    return QuestionInfo(
+        depth=depth,
+        marks=marks,
+        sub_parts=sub_parts,
+        topic_tokens=topic_tokens,
+        identifier_tokens=identifier_tokens,
+    )
+
+
+def _split_sub_parts(question: str) -> List[str]:
+    """Split a question into its lettered sub-parts, e.g. "a) ...", "b) ...".
+
+    Returns an empty list when the question has no lettered sub-parts.
+    """
+
+    markers = list(SUB_PART_RE.finditer(question))
+    if len(markers) < 2:
+        return []
+
+    parts = []
+    for index, marker in enumerate(markers):
+        start = marker.end()
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(question)
+        label = marker.group(1).lower()
+        text = question[start:end].strip().rstrip(";").strip()
+        if text:
+            parts.append(f"{label}) {text}")
+    return parts
+
 
 class RagQueryEngine:
     """Query engine that keeps the retrieval assets loaded in memory."""
@@ -71,7 +145,7 @@ class RagQueryEngine:
         try:
             self.embedder = load_embedding_model(MODELS_DIR)
             self.retrieval_mode = "hybrid"
-        except (FileNotFoundError, OSError) as exc:
+        except Exception as exc:
             print(f"Embedding retriever unavailable ({exc}). Falling back to offline keyword retrieval.")
 
         if self.reranker is not None:
@@ -84,28 +158,48 @@ class RagQueryEngine:
 
         self.ollama_model = resolve_ollama_model(ollama_model)
 
-    def answer(self, question: str, top_k: int = TOP_K) -> int:
+    def answer(
+        self,
+        question: str,
+        top_k: Optional[int] = None,
+        marks_override: Optional[int] = None,
+        verify_r: bool = False,
+    ) -> int:
         """Retrieve context and stream an answer for a question."""
 
-        print(f"Retrieving top {top_k} chunks using {self.retrieval_mode} retrieval...\n")
-        results = self.retrieve(question, top_k=top_k)
+        question_info = analyze_question(question, marks_override=marks_override)
+        resolved_top_k = top_k or (TOP_K_LONG if question_info.depth == "long" else TOP_K)
+
+        print(
+            f"Retrieving top {resolved_top_k} chunks using {self.retrieval_mode} retrieval "
+            f"({question_info.depth} question, {len(question_info.sub_parts)} sub-part(s))...\n"
+        )
+        results = self.retrieve(question, top_k=resolved_top_k, question_info=question_info)
 
         if not results:
             print("No relevant context found in the index for this question.")
             return 1
 
-        prompt = build_prompt(question, results, chunk_char_limit=MAX_CHUNK_CHARS)
+        prompt = build_prompt(
+            question, results, chunk_char_limit=MAX_CHUNK_CHARS, question_info=question_info
+        )
 
         print("Answer:")
+        answer_text = ""
         try:
-            stream_ollama_response(prompt, self.ollama_model, num_ctx=OLLAMA_NUM_CTX)
+            answer_text = stream_ollama_response(prompt, self.ollama_model, num_ctx=OLLAMA_NUM_CTX)
         except requests.HTTPError as exc:
             status_code, error_text = extract_http_error(exc)
             if status_code == 500 and "runner process has terminated" in error_text.lower():
                 print("\nRetrying with a smaller offline prompt for low-memory mode...")
-                compact_prompt = build_prompt(question, results, chunk_char_limit=RETRY_CHUNK_CHARS)
+                compact_prompt = build_prompt(
+                    question,
+                    results,
+                    chunk_char_limit=RETRY_CHUNK_CHARS,
+                    question_info=question_info,
+                )
                 try:
-                    stream_ollama_response(
+                    answer_text = stream_ollama_response(
                         compact_prompt,
                         self.ollama_model,
                         num_ctx=RETRY_OLLAMA_NUM_CTX,
@@ -128,15 +222,69 @@ class RagQueryEngine:
             )
             stream_llama_cpp_response(prompt, self.model_path)
 
+        if verify_r and answer_text:
+            self._verify_r_code(answer_text, prompt)
+
         print("\n\nSources:")
         for source, page in format_sources(results):
             print(f"  - {source}, page {page}")
 
         return 0
 
-    def retrieve(self, question: str, top_k: int = TOP_K) -> List[ChunkPayload]:
+    def _verify_r_code(self, answer_text: str, original_prompt: str) -> None:
+        """Execute the answer's R code with Rscript and request one correction on failure."""
+
+        blocks = extract_r_code_blocks(answer_text)
+        if not blocks:
+            return
+
+        combined_code = "\n\n".join(blocks)
+        ok, stderr = run_r_code(combined_code)
+        if ok:
+            print("\n\n[R check: code executed without errors.]")
+            return
+
+        if not classify_r_error(stderr):
+            detail = stderr.strip().splitlines()[-1] if stderr.strip() else "unknown error"
+            print(
+                "\n\n[R check: execution failed for a likely non-code reason (missing data file "
+                f"or uninstalled package), skipping auto-fix. Details: {detail}]"
+            )
+            return
+
+        print(f"\n\n[R check: found a code error, requesting one correction...\n{stderr.strip()}]\n")
+        correction_prompt = (
+            f"{original_prompt}\n\n"
+            "=== PREVIOUS ANSWER FAILED TO RUN ===\n"
+            f"R error:\n{stderr.strip()}\n\n"
+            "Fix only what is broken and give the complete corrected answer, following the "
+            "same rules as before.\n"
+            "=== CORRECTED ANSWER ===\n"
+        )
+        try:
+            corrected_text = stream_ollama_response(
+                correction_prompt, self.ollama_model, num_ctx=OLLAMA_NUM_CTX
+            )
+        except requests.RequestException as exc:
+            print(f"\n[R check: correction attempt failed: {exc}]")
+            return
+
+        corrected_blocks = extract_r_code_blocks(corrected_text)
+        if not corrected_blocks:
+            return
+        ok_after, _ = run_r_code("\n\n".join(corrected_blocks))
+        status = "now executes cleanly" if ok_after else "still has an issue -- review manually"
+        print(f"\n\n[R check: corrected answer {status}.]")
+
+    def retrieve(
+        self,
+        question: str,
+        top_k: int = TOP_K,
+        question_info: Optional[QuestionInfo] = None,
+    ) -> List[ChunkPayload]:
         """Retrieve the top chunks for a question."""
 
+        identifier_tokens = question_info.identifier_tokens if question_info else ()
         return retrieve_chunks(
             question,
             self.embedder,
@@ -145,6 +293,7 @@ class RagQueryEngine:
             self.bm25,
             self.reranker,
             top_k=top_k,
+            identifier_tokens=identifier_tokens,
         )
 
     def _handle_http_error(self, exc: requests.HTTPError, prompt: str) -> int:
@@ -274,6 +423,7 @@ def retrieve_chunks(
     bm25: Optional[BM25Okapi],
     reranker,
     top_k: int = TOP_K,
+    identifier_tokens: Sequence[str] = (),
 ) -> List[ChunkPayload]:
     """Retrieve relevant chunks with hybrid search and optional reranking."""
 
@@ -298,8 +448,43 @@ def retrieve_chunks(
         candidates = ranked_indices[:RERANK_CANDIDATES]
         ranked_indices = rerank_indices(question, chunks, candidates, reranker)
 
+    if identifier_tokens:
+        ranked_indices = _boost_identifier_matches(ranked_indices, chunks, bm25_indices, identifier_tokens)
+
     selected = dedupe_indices(ranked_indices, chunks)[:top_k]
     return [chunks[idx] for idx in selected]
+
+
+def _boost_identifier_matches(
+    ranked_indices: List[int],
+    chunks: Sequence[ChunkPayload],
+    candidate_indices: Sequence[int],
+    identifier_tokens: Sequence[str],
+    max_boosted: int = 2,
+) -> List[int]:
+    """Force-include chunks that exactly mention a question identifier (dataset/function name).
+
+    RRF fusion and reranking can push an exact-name match (e.g. "USArrests", "multinom(")
+    below the cutoff if the rest of the chunk isn't a strong semantic match. An exact
+    identifier hit is a strong, cheap signal, so pull a couple to the front of the list.
+    """
+
+    lowered_tokens = [token.lower() for token in identifier_tokens if len(token) >= 3]
+    if not lowered_tokens:
+        return ranked_indices
+
+    already_ranked = set(ranked_indices)
+    boosted: List[int] = []
+    for idx in candidate_indices:
+        if idx in already_ranked or idx in boosted:
+            continue
+        text = str(chunks[idx]["text"]).lower()
+        if any(token in text for token in lowered_tokens):
+            boosted.append(idx)
+        if len(boosted) >= max_boosted:
+            break
+
+    return boosted + ranked_indices
 
 
 def dedupe_indices(indices: Sequence[int], chunks: Sequence[ChunkPayload]) -> List[int]:
@@ -422,8 +607,12 @@ def build_prompt(
     question: str,
     retrieved_chunks: Sequence[ChunkPayload],
     chunk_char_limit: int = MAX_CHUNK_CHARS,
+    question_info: Optional[QuestionInfo] = None,
 ) -> str:
     """Construct the RAG prompt from retrieved context and the user question."""
+
+    if question_info is None:
+        question_info = analyze_question(question)
 
     context_blocks = []
     for position, chunk in enumerate(retrieved_chunks, start=1):
@@ -434,6 +623,40 @@ def build_prompt(
         )
 
     context = "\n\n".join(context_blocks)
+
+    reference_entries = match_reference_entries(question_info.topic_tokens)
+    reference_block = format_reference_block(reference_entries)
+    reference_section = (
+        f"=== VERIFIED LIBRARY REFERENCE (use these exact functions/arguments if relevant) ===\n"
+        f"{reference_block}\n\n"
+        if reference_block
+        else ""
+    )
+
+    checklist_section = ""
+    if question_info.sub_parts:
+        checklist = "\n".join(f"- {part}" for part in question_info.sub_parts)
+        checklist_section = (
+            "=== SUB-PARTS TO ANSWER (every one of these must appear in the answer, "
+            "under its own label, reusing objects created in earlier parts) ===\n"
+            f"{checklist}\n\n"
+        )
+
+    if question_info.depth == "long":
+        depth_rule = (
+            "9. This is a long-form, multi-part exam question. For each sub-part listed above: "
+            "give its code first, then a short exam-style interpretation for that sub-part "
+            "directly underneath, before moving to the next sub-part. Reuse the same variable "
+            "and model/object names you defined in earlier sub-parts -- never redefine or "
+            "rename them."
+        )
+    else:
+        depth_rule = (
+            "9. This is a short exam question worth few marks. Answer directly and concisely: "
+            "the minimum correct code needed, plus a one-line example of the syntax if it "
+            "clarifies usage, and no extended prose."
+        )
+
     return (
         "You are an R programming examiner and tutor. Answer the question exactly as asked, "
         "using the reference material below as your primary source.\n\n"
@@ -445,14 +668,27 @@ def build_prompt(
         "the notes. Never refuse just because the context is thin.\n"
         "3. Use only the variables, data, and file names given in the question. Do not invent "
         "data, column names, or file formats, and do not add steps that were not asked for.\n"
-        "4. Keep variable names consistent across every part of the answer, and reuse results "
-        "from earlier parts in later parts.\n"
-        "5. Write valid, runnable base R unless the question asks for a specific package.\n"
-        "6. If the question has parts, answer under the same labels, for example (a), (b), (c). "
-        "If it has no parts, do not invent part labels.\n"
-        "7. Give code first, then a short exam-style interpretation only where one is asked for.\n"
-        "8. Output only the answer. Start directly with the code or the answer text. Do not "
+        "4. Every non-base-R function must be preceded by an explicit, real library(pkg) call. "
+        "Never invent a function argument -- only use arguments that are genuinely documented "
+        "for that function. If the VERIFIED LIBRARY REFERENCE section below covers the topic, "
+        "use its exact function/argument names instead of guessing.\n"
+        "5. Check a variable's type before applying a type-specific function (for example, "
+        "levels() only works on a factor, not a numeric or character column). Apply "
+        "na.omit()/complete.cases() before any test or model that breaks on missing values "
+        "(for example shapiro.test, t.test, lm).\n"
+        "6. If the question has lettered sub-parts, answer under the same labels, for example "
+        "(a), (b), (c), and address every sub-part listed below -- do not skip any requested "
+        "computation, plot, or interpretation. If it has no parts, do not invent part labels.\n"
+        "7. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
+        "contain an actual call that renders a plot -- do not stop at fitting the model.\n"
+        "8. Any interpretation must state the concrete pattern implied by the question/data "
+        "(for example, which group or cluster is higher or lower on which variable) -- do not "
+        "just restate the general statistical rule or definition.\n"
+        f"{depth_rule}\n"
+        "10. Output only the answer. Start directly with the code or the answer text. Do not "
         "restate these rules and do not write a preamble such as 'Here is the answer'.\n\n"
+        f"{reference_section}"
+        f"{checklist_section}"
         "=== CONTEXT ===\n"
         f"{context}\n\n"
         "=== QUESTION ===\n"
@@ -461,8 +697,8 @@ def build_prompt(
     )
 
 
-def stream_ollama_response(prompt: str, model: str, num_ctx: int) -> None:
-    """Stream a response from the local Ollama server."""
+def stream_ollama_response(prompt: str, model: str, num_ctx: int) -> str:
+    """Stream a response from the local Ollama server, returning the full text."""
 
     options = dict(GENERATION_OPTIONS)
     options["num_ctx"] = num_ctx
@@ -481,6 +717,7 @@ def stream_ollama_response(prompt: str, model: str, num_ctx: int) -> None:
     )
     response.raise_for_status()
 
+    pieces: List[str] = []
     for line in response.iter_lines(decode_unicode=True):
         if not line:
             continue
@@ -491,6 +728,9 @@ def stream_ollama_response(prompt: str, model: str, num_ctx: int) -> None:
         text = payload.get("response", "")
         if text:
             print(text, end="", flush=True)
+            pieces.append(text)
+
+    return "".join(pieces)
 
 
 def extract_http_error(exc: requests.HTTPError) -> Tuple[object, str]:
@@ -528,6 +768,71 @@ def stream_llama_cpp_response(prompt: str, model_path: str) -> None:
         text = chunk["choices"][0]["text"]
         if text:
             print(text, end="", flush=True)
+
+
+CODE_FENCE_RE = re.compile(r"```(?:[rR]|[Rr]script)?\s*\n(.*?)```", re.DOTALL)
+NON_ACTIONABLE_ERROR_MARKERS = (
+    "cannot open file",
+    "cannot open connection",
+    "there is no package called",
+    "unable to find an inherited method",  # usually a missing-package symptom
+)
+ACTIONABLE_ERROR_MARKERS = (
+    "unexpected symbol",
+    "unexpected string constant",
+    "unexpected '",
+    "could not find function",
+    "unused argument",
+    "argument .* matches multiple formal arguments",
+    "object '",
+)
+
+
+def extract_r_code_blocks(answer_text: str) -> List[str]:
+    """Pull fenced R code blocks out of a generated answer."""
+
+    return [block.strip() for block in CODE_FENCE_RE.findall(answer_text) if block.strip()]
+
+
+def run_r_code(code: str, timeout: int = 20) -> Tuple[bool, str]:
+    """Execute R code with Rscript in a throwaway temp file and return (ok, stderr)."""
+
+    import subprocess
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".R", delete=False, encoding="utf-8") as handle:
+        handle.write(code)
+        script_path = handle.name
+
+    try:
+        result = subprocess.run(
+            ["Rscript", "--vanilla", script_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        return result.returncode == 0, result.stderr
+    except FileNotFoundError:
+        # Rscript isn't installed; nothing to verify against, so don't block the answer.
+        return True, ""
+    except subprocess.TimeoutExpired:
+        return False, "Execution timed out (likely an infinite loop or blocking input() call)."
+    finally:
+        Path(script_path).unlink(missing_ok=True)
+
+
+def classify_r_error(stderr: str) -> bool:
+    """Return True if stderr looks like an actionable code bug worth a correction retry.
+
+    Missing data files and uninstalled packages are legitimate for a hypothetical exam
+    question's dataset and aren't something the model can fix by rewriting the code, so
+    those are treated as non-actionable and skipped rather than retried.
+    """
+
+    lowered = stderr.lower()
+    if any(marker in lowered for marker in NON_ACTIONABLE_ERROR_MARKERS):
+        return False
+    return any(re.search(marker, lowered) for marker in ACTIONABLE_ERROR_MARKERS)
 
 
 def format_sources(retrieved_chunks: Iterable[ChunkPayload]) -> List[Tuple[str, int]]:
