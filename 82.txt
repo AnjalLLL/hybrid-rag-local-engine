@@ -1,0 +1,173 @@
+Tribhuvan University
+
+Institute of Science and Technology
+
+2082
+
+Course: MDS 503 – Statistical Computing with R
+Level: MDS / I Year / First Semester / Science (Data Science)
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 Hours
+
+Instructions:
+
+Candidates are required to write answers with examples for question numbers 1–5 in the answer sheet and use a laptop for answering question numbers 6–10 with R scripts/markdown. R scripts/markdown must be knitted as PDF with the outputs/interpretation of question numbers 6–10 and saved in a folder with the R script/markdown and the exam roll number for grading.
+
+Attempt all questions.
+
+⸻
+
+Group A (5 × 3 = 15)
+
+1. Explain the following concepts with examples:
+
+a) Categorical variable and its type in R
+
+b) Date variable and its type in R
+
+⸻
+
+2. Describe the following concepts with example:
+
+a) Reviewing the data frame for missing values in R
+
+b) Getting summary statistics without missing values in R
+
+⸻
+
+3. Explain the following concepts with examples:
+
+a) Grammar of graphics – Wilkinson’s approach
+
+b) Five-number summary
+
+⸻
+
+4. Explain the following concepts with examples:
+
+a) Decision Tree
+
+b) Support Vector Machine (SVM)
+
+⸻
+
+5. Explain the following concepts with examples:
+
+a) Biplot from Principal Component Analysis (PCA)
+
+b) Biplot from Classical Multidimensional Scaling (MDS)
+
+⸻
+
+Group B (5 × 6 = 30)
+
+6. Load the igraph package in RStudio and perform the following basic SNA tasks using an R script to knit PDF output:
+
+a) Define g1 as a graph object with the vertices:
+
+("R", "S", "S", "T", "T", "R", "R", "T", "U", "S")
+
+as its elements.
+
+b) Plot g1 with:
+
+* Node color = Green
+* Node size = 30
+* Link color = Red
+* Link size = 5
+
+Interpret the graph.
+
+c) Compute the degree of g1 and interpret the results carefully.
+
+d) Compute the closeness of g1 and interpret the results carefully.
+
+⸻
+
+OR
+
+Perform the following using the airquality dataset in R and knit PDF output:
+
+a) Replace missing values of the Ozone variable with its median and save it as corrected Ozone.
+
+b) Plot the histogram of the corrected Ozone variable using base R and interpret it carefully.
+
+c) Plot the boxplot of the corrected Ozone variable using base R and interpret it carefully.
+
+d) Obtain appropriate summary measures of the corrected Ozone variable with justification.
+
+⸻
+
+7. Perform the following in RStudio and knit PDF output:
+
+a) Open R and go to Help → Manuals (PDF) and open the “An Introduction to R” file.
+
+b) Import this PDF file into R using the pdftools package.
+
+c) Perform preprocessing and create a corpus using the tm package.
+
+d) Find the most frequent terms and create a histogram of the most frequent terms.
+
+⸻
+
+OR
+
+Using the mtcars dataset, perform the following and knit PDF output:
+
+a) Create a bar plot of the mpg variable using ggplot2 and interpret it carefully.
+
+b) Create a boxplot of the mpg variable using ggplot2 and interpret it carefully.
+
+c) Create a scatter plot of mpg and wt using ggplot2 and interpret it carefully.
+
+d) Compute the appropriate correlation coefficient between mpg and wt and interpret it carefully.
+
+⸻
+
+8. Perform the following using the airquality dataset in R Markdown and knit PDF output:
+
+a) Perform the Shapiro–Wilk test on the Wind variable and check whether it follows a normal distribution.
+
+b) Perform Bartlett’s test on the Wind variable grouped by Month and check the equality of variances.
+
+c) Fit a one-way ANOVA model to compare the Wind variable across Month and interpret the result carefully.
+
+d) Fit the Tukey HSD post-hoc test with 95% confidence interval and interpret the result carefully.
+
+⸻
+
+9. Perform the following using the mtcars dataset in R Markdown and knit PDF output:
+
+a) Divide the dataset into 70:30 train-test splits using your roll number as the random seed.
+
+b) Fit:
+
+* A supervised Linear Regression model
+* A KNN Regression model
+
+using mpg as the dependent variable and all other variables as independent variables.
+
+c) Predict the miles per gallon (mpg) for the test dataset and obtain predicted values for observations with:
+
+wt < 6000 lbs
+
+d) Compare the following fit indices for both models:
+
+* R²
+* MSE
+* RMSE
+
+Choose the best model.
+
+⸻
+
+10. Use the USArrests dataset in RStudio and knit PDF output:
+
+a) Fit a Hierarchical Clustering model using Single Linkage and obtain the dendrogram.
+
+b) Fit a Hierarchical Clustering model using Complete Linkage and obtain the dendrogram.
+
+c) Fit a Hierarchical Clustering model using Average Linkage and obtain the dendrogram.
+
+d) Determine the optimal number of clusters (k) by drawing appropriate horizontal cut lines (abline) on the dendrogram of the best hierarchical clustering model.

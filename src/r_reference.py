@@ -143,6 +143,50 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
             "to any one file in your materials."
         ),
     ),
+    "grouped_test_extraction": ReferenceEntry(
+        keywords=("each category", "by month", "each group", "grouped test", "by category"),
+        required_library="# base R (stats package, always loaded)",
+        canonical_skeleton=(
+            "shapiro_by_group <- by(df$x, df$group, shapiro.test)\n"
+            "print(shapiro_by_group)  # inspect each group's W statistic and p-value directly\n"
+            "shapiro_pvalues <- sapply(shapiro_by_group, function(res) res$p.value)\n"
+            "print(shapiro_pvalues)\n"
+            "all(shapiro_pvalues > 0.05)  # TRUE only if every group individually passed"
+        ),
+        pitfalls=(
+            "by() returns an object of class 'by' (a list holding one test result per group) "
+            "-- it has NO $p.value field of its own, so by(...)$p.value silently returns NULL "
+            "instead of erroring. Using that directly in a condition, e.g. "
+            "all(by(x, g, shapiro.test)$p.value > 0.05), is a real bug that will NOT show up "
+            "as an execution error: all(NULL > 0.05) evaluates to TRUE regardless of the "
+            "actual test outcomes, so any if/else branch guarded by it always takes the same "
+            "path no matter what the per-group tests actually found. Always extract each "
+            "group's p-value first with sapply(by_result, function(res) res$p.value) (or "
+            "vapply/purrr::map_dbl) before using it in any comparison, condition, or all()/"
+            "any() check."
+        ),
+    ),
+    "anova_pvalue_extract": ReferenceEntry(
+        keywords=("aov", "anova", "one-way anova", "tukeyhsd"),
+        required_library="# base R (stats package, always loaded)",
+        canonical_skeleton=(
+            "anova_model <- aov(y ~ group, data = df)\n"
+            "print(summary(anova_model))  # simplest: just read the p-value from the printed table\n\n"
+            "# only if you need the p-value in code, e.g. for an if() branch:\n"
+            "anova_pvalue <- summary(anova_model)[[1]][[\"Pr(>F)\"]][1]\n"
+            "if (anova_pvalue < 0.05) TukeyHSD(anova_model)"
+        ),
+        pitfalls=(
+            "summary(an_aov_model) returns a list containing one data frame, not a simple "
+            "named object -- summary(model)$group or summary(model)$`group`$`Pr(>F)` are BOTH "
+            "invalid. R has no method that lets you chain $Pr(>F) like a function call after "
+            "$group; that syntax will error. The correct way to pull the p-value out "
+            "programmatically is summary(anova_model)[[1]][[\"Pr(>F)\"]][1]. If you don't "
+            "actually need to branch on it in code, it is simpler and safer to just "
+            "print(summary(anova_model)) and read the p-value directly from the printed "
+            "table instead of extracting it."
+        ),
+    ),
     "islr2": ReferenceEntry(
         keywords=("islr2", "islr"),
         required_library="library(ISLR2)",

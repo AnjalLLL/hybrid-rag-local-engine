@@ -1,0 +1,744 @@
+TRIBHUVAN UNIVERSITY
+MASTER OF DATA SCIENCE
+STATISTICAL COMPUTING WITH R (MDS 503)
+
+TEXT TRANSCRIPTION OF QUESTION PAPERS
+
+Source: Scanned question-paper PDF containing Final Examination 2078, First Assessment 2080, First Re-assessment 2080, First Assessment 2081, and Second Assessment 2080/2081 papers.
+
+======================================================================
+FINAL EXAMINATION 2078
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10 with R scripts in R Notebook. R scripts must be knitted as HTML or PDF with the outputs/interpretation of question numbers 6-10, and it must be saved in a folder with the R Notebook and knitted HTML/PDF file with your exam roll number for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Describe the following concepts with focus on R software:
+   a) Loops
+   b) Function
+   c) Pipe
+
+2. Explain the following concepts with examples focusing on R software:
+   a) Big data
+   b) Data wrangling
+   c) Tidy data
+
+3. Explain the following concepts with examples focusing on R software:
+   a) Measures of central tendency
+   b) Measures of dispersion
+   c) Measures of relative position
+
+4. Explain the following concepts with examples focusing on R software:
+   a) Correlation
+   b) Parametric tests
+   c) Non-parametric tests
+
+5. Compare the following models with focus on R software:
+   a) Naive Bayes and Support Vector Machine
+   b) Decision Tree and Random Forest
+   c) Feed-forward and feed-backward neural network
+
+GROUP B [5 x 6 = 30]
+
+6. Do the following in RStudio with R script so that it can be knitted as PDF:
+   a) Prepare a column vector of miles per gallon (mpg) variable with random range between 10 to 50 of 500 values. Do not forget to use your exam roll number as random seed to replicate the result.
+   b) Plot histogram of this mpg variable and interpret it carefully.
+   c) Refine the histogram by filling the bars with blue color and changing number of bins to 8.
+   d) Add a vertical abline at the arithmetic mean of the mpg variable.
+   e) Plot Q-Q plot of mpg variable, add normal Q-Q line of red color on it, and interpret it carefully.
+   f) Plot density plot of mpg variable without border, fill it with yellow color, and interpret it.
+
+   OR
+
+   Use the ggplot2 package and do the following in RStudio:
+   a) Define the first layer of the ggplot object with diamond data, carat as x-axis, and price as y-axis.
+   b) Add layer with geometric aesthetics as point, statistics and position as identity.
+   c) Add layers with scale of y and x variables as continuous.
+   d) Add layer with coordinate system as Cartesian.
+   e) Add layer with appropriate title and interpret the resulting graph carefully.
+
+7. Do the following in RStudio with R script so that it can be knitted as PDF:
+   a) Prepare data with 100 random observations and two variables: miles per gallon (mpg) with random range between 10 to 50 and transmission gears (gear) as random binary variable (3 = gear, 4 = four gear, and 5 = five gears). Do not forget to use your class roll number as random seed to replicate the result.
+   b) Perform goodness-of-fit test on miles per gallon (mpg) variable to check if it follows normal distribution or not.
+   c) Perform goodness-of-fit test on miles per gallon (mpg) variable to check if the variances of mpg are equal or not across gear-variable categories.
+   d) Perform the best one-way analysis of variance test based on goodness-of-fit results with justification.
+   e) Can you use this test for this data? Interpret the result carefully, if applicable.
+
+8. Do the following in RStudio using R script so that it can be knitted as PDF:
+   a) Prepare data with 200 random observations and four variables: miles per gallon (mpg) with random range between 10 to 50; transmission (am) as random binary variable (0 = automatic, 1 = manual); weight (wt) with random range of 1 to 10; and horse power (hp) with random range of 125 to 400. Do not forget to use your exam roll number as random seed to replicate the result.
+   b) Divide this data into train and test datasets with 70:30 random split, with your exam roll number as random seed for replication.
+   c) Fit a supervised linear regression model for the train data.
+   d) Explain the model fit and BLUE coefficients for the fitted model.
+   e) Predict the mpg variable in the test data, get fit indices, and interpret them carefully.
+
+9. Do the following in RStudio with R script so that it can be knitted as PDF:
+   a) Prepare data with four random variables and 300 observations: miles per gallon (mpg) with random range between 10 to 50; transmission (am) as random binary variable (0 = automatic, 1 = manual); weight (wt) with random range of 1 to 10; and horse power (hp) with random range of 125 to 400. Do not forget to use your exam roll number as random seed to replicate the result.
+   b) Divide this data into train and test datasets with 80:20 random split, with your exam roll number as random seed for replication.
+   c) Fit a supervised logistic regression model on train data with transmission (am) as dependent variable and miles per gallon (mpg), horse power (hp), and weight (wt) as independent variables.
+   d) Predict the transmission variable in the test data and interpret the predicted result carefully.
+   e) Get the confusion matrix, sensitivity, and specificity of the predicted model and interpret them carefully.
+
+10. Do the following using mtcars dataset in RStudio with R script so that it can be knitted as PDF:
+    a) Check the head and structure of the dataset.
+    b) Create a car scale using the Principal Component Analysis (PCA) model based on nine numerical variables with centering and scaling of the variables.
+    c) Based on the PCA summary result, how many components must be extracted? Why?
+    d) Get the biplot of the fitted model and interpret it carefully.
+    e) Improve the fitted model with VARIMAX process and interpret the results carefully.
+
+    OR
+
+    Do the following using USArrests dataset in RStudio with R script so that it can be knitted as PDF:
+    a) Get dissimilarity distance as state.dissimilarity object.
+    b) Fit a classical multidimensional model using the state.dissimilarity object.
+    c) Get the summary of the model and interpret it carefully.
+    d) Get the plot of the model and interpret it carefully.
+    e) Compare this model with the first two components from principal component analysis in this data.
+
+======================================================================
+SECOND ASSESSMENT 2081
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+School of Mathematical Sciences
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10 with R scripts. R scripts must be knitted as PDF with the outputs/interpretation of question numbers 6-10, and it must be saved in a folder with the PDF files alongside the name/class roll number for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Describe data visualization with focus on:
+   a) Concept of grammar of graphics with Wilkinson's approach
+   b) Layers in grammar of graphics with ggplot package's approach
+   c) Statistical transformations in grammar of graphics
+
+2. Describe the following for checking fit of the multiple linear regression model:
+   a) Outliers
+   b) Cook's distance
+   c) Leverage
+
+3. Describe supervised-learning classification regression model with focus on:
+   a) Model-fit indices
+   b) Confusion matrix with an example
+   c) Prediction accuracy with ROC curve
+
+4. Describe the following with an example of its use:
+   a) Poisson regression
+   b) Zero-inflated Poisson regression
+   c) Negative binomial regression
+
+5. Describe supervised linear regression model with focus on:
+   a) Cross-validation
+   b) K-fold cross-validation
+   c) Repeated k-fold cross-validation
+
+GROUP B [5 x 6 = 30]
+
+6. Do the following in RStudio using ggplot2 package with R script to knit PDF output:
+   a) Create a dataset with the following variables: age (10-99 years), sex (male/female), educational levels (No education/Primary/Secondary/Beyond secondary), socio-economic status (Low, Middle, High), and body mass index (14-38), with random 200 cases of each variable. Your roll number must be used to set the random seed.
+   b) Create scatter plot of age and body mass index variables using ggplot2 package and interpret the result carefully.
+   c) Create classes of body mass index variable as <18, 18-24, 25-30, 30+ and show it as pie chart using ggplot2 package and interpret it carefully.
+   d) Create histogram of age variable with bin size of 15 using the ggplot2 package and interpret it carefully.
+
+7. Do the following in RStudio using airquality dataset of R with R script to knit PDF output:
+   a) Perform goodness-of-fit test on Temp variable to check if it follows normal distribution or not.
+   b) Perform goodness-of-fit test on Temp variable by Month variable to check if the variances of Temp are equal or not across Month-variable categories.
+   c) Discuss which independent-sample test must be used to compare Temp variable by Month-variable categories based on the results obtained above.
+   d) Perform the best independent-sample statistical test for this data now and interpret the results carefully.
+
+8. Do the following in RStudio using Arrests dataset of car package with R script to knit PDF output:
+   a) Divide the Arrests data into train and test datasets with 80:20 random splits.
+   b) Fit a supervised logistic regression and naive Bayes classification models on train data with released as dependent variable and colour, age, sex, employed, and citizen as independent variables.
+   c) Predict the released variable in the test datasets of these models and interpret the result carefully.
+   d) Compare and decide which classification model is better for this data.
+
+9. Do the following using in-built iris dataset with R script to knit PDF output:
+   a) Create a flower scale of first four variables of iris dataset using the Principal Component Analysis.
+   b) Compute the eigenvalues and interpret the PCA result carefully using Kaiser's criterion.
+   c) Show the Scree plot and decide on the number of components to retain with careful interpretation.
+   d) Revise the flower scale with 3 components using VARIMAX rotation and interpret the result carefully.
+
+   OR
+
+   Do the following using the given dataset of 10 US cities in RStudio with R script:
+
+   Distance matrix:
+
+                 Atlanta Chicago Denver Houston Los Angeles Miami New York San Francisco Seattle Washington D.C.
+   Atlanta             0     587   1212     701        1936   604      748          2139    2182            543
+   Chicago           587       0    920     940        1745  1188      713          1858    1737            597
+   Denver           1212     920      0     879         831  1726     1631           949    1021           1494
+   Houston           701     940    879       0        1374   968     1420          1645    1891           1220
+   Los Angeles      1936    1745    831    1374           0  2339     2451           347     959           2300
+   Miami             604    1188   1726     968        2339     0     1092          2594    2734            923
+   New York          748     713   1631    1420        2451  1092        0          2571    2408            205
+   San Francisco    2139    1858    949    1645         347  2594     2571             0     678           2442
+   Seattle          2182    1737   1021    1891         959  2734     2408           678       0           2329
+   Washington D.C.   543     597   1494    1220        2300   923      205          2442    2329              0
+
+   a) Get dissimilarity distance as city.dissimilarity object.
+   b) Fit a classical multidimensional model using the city.dissimilarity object.
+   c) Get the summary of the model and interpret it carefully.
+   d) Get the biplot of the model and interpret it carefully.
+
+10. Use the first four variables of iris data and do the following with R script to knit PDF output:
+    a) Fit a hierarchical clustering model using single linkage and get the dendrogram for this model.
+    b) Fit a hierarchical clustering model using complete linkage and get the dendrogram for this model.
+    c) Fit a hierarchical clustering model using average linkage and get the dendrogram for this model.
+    d) Find the best hierarchical clustering model for this data and locate the number of clusters for it.
+
+    OR
+
+    Use the first four variables of iris data file in RStudio and do the following with R script to knit PDF output:
+    a) Fit a k-means clustering model in the data with k = 2 and k = 3.
+    b) Plot the clusters formed with k = 3 in a single graph and interpret them carefully.
+    c) Add cluster centers for the plot of clusters formed with k = 3 and interpret it carefully.
+    d) Compare the k = 3 clusters with Species variable using confusion matrix and interpret the result carefully.
+
+======================================================================
+FIRST ASSESSMENT 2081
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10 with R scripts. R scripts must be knitted as PDF with the outputs/interpretation of question numbers 6-10, and it must be saved in a folder with the R script and the exam roll number for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Explain the following concepts with R codes:
+   a) Numeric variable and its type with example
+   b) Categorical variable and its type with example
+
+2. Explain the following concepts with focus on R software:
+   a) Manipulating row and column of data frame in dplyr package with an example
+   b) Extract, Transform and Load in dplyr package with an example
+
+3. Explain the following concepts with focus on R software:
+   a) Boxplot with five-number summaries with example
+   b) Boxplot with outliers with example
+
+4. Explain the following concepts with focus on R software:
+   a) Leverage in linear regression with example
+   b) Multicollinearity in logistic regression with example
+
+5. Explain the following concepts with focus on R software:
+   a) Biplot from principal component analysis
+   b) Biplot from classical multidimensional scaling
+
+GROUP B [5 x 6 = 30]
+
+6. Load the igraph package in RStudio and do the basic SNA as follows with R script and HTML output:
+   a) Define g1 as graph object with ("R", "S", "S", "T", "T", "R", "R", "T", "U", "S") as its elements.
+   b) Plot g1 with node color as green, node size as 30, link color as red, and link size as 5, and interpret it.
+   c) Get degree, closeness, and betweenness of g1 and interpret them carefully.
+   d) Get hub and communities of this data and interpret them carefully.
+
+   OR
+
+   Do the following in RStudio using airquality dataset with R script:
+   a) Replace missing values of Ozone variable with median of this variable as corrected Ozone.
+   b) Get the histogram of the corrected Ozone variable using base R plot and interpret it carefully.
+   c) Get the boxplot of Wind variable using base R plot and interpret it carefully.
+   d) Get the Wind-variable outliers using median and interquartile range and compare them with boxplot outlier values, with justification.
+
+7. Do the following in RStudio with R script and HTML outputs:
+   a) Open R and then go to Help and Manuals in PDF and open An Introduction to R file.
+   b) Import this PDF file in R using pdftools package.
+   c) Perform pre-processing and create corpus afterwards.
+   d) Find the most frequent terms, create its bar diagram, and interpret carefully.
+
+   OR
+
+   Do the following in RStudio using airquality dataset with R script:
+   a) Get the boxplot of Temp variable using ggplot2 package and interpret it carefully.
+   b) Create class intervals of Temp variable using dplyr package and show it as frequency distribution.
+   c) Get pie chart of Temp variable class intervals using ggplot2 package and interpret it carefully.
+   d) Get scatter plot of corrected Temp and Wind variables using ggplot2 package and interpret it carefully.
+
+8. Do the following in RStudio using airquality dataset with R script:
+   a) Perform Shapiro-Wilk test on Wind variable to check if it follows normal distribution or not.
+   b) Perform Bartlett test on Wind variable by Month variable to check if the variances of Wind are equal or not across Month-variable categories.
+   c) Fit one-way ANOVA to compare Wind variable by Month variable and interpret the result carefully.
+   d) Fit TukeyHSD post-hoc test with 95% confidence interval and interpret the result carefully.
+
+9. Do the following in RStudio using USArrests dataset with R script:
+   a) Divide the mtcars data into train and test datasets with 70:30 random splits.
+   b) Fit a supervised linear regression model and KNN regression model on train data with UrbanPop as dependent variable and all other variables as independent variables.
+   c) Predict the UrbanPop variable in the test datasets using these two models and interpret results carefully.
+   d) Compare the fit indices (R-square, MSE, RMSE) of the two predicted models and choose the best model.
+
+10. Use the first four variables of iris data and do the following in RStudio with R script:
+    a) Fit a hierarchical clustering model using average linkage and get the dendrogram for this model.
+    b) Get the best value of number of clusters to form (k) using the fitted model above.
+    c) Fit the k-means clustering model with the best value of k identified above and interpret it carefully.
+    d) Compare k-means result with the last variable of this data using confusion matrix and interpret the result carefully.
+
+======================================================================
+SECOND ASSESSMENT 2080
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+School of Mathematical Sciences
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10 with R scripts. R scripts must be knitted as HTML with the outputs/interpretation of question numbers 6-10, and it must be saved in a folder with the HTML file and the name/class roll number for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Describe supervised learning with focus on:
+   a) Grammar of graphics
+   b) Layers in grammar of graphics
+   c) Statistical transformations in grammar of graphics
+
+2. Describe supervised-learning linear regression model with focus on:
+   a) Pre-requisites before fitting this type of model
+   b) Multicollinearity and its importance in the multiple linear regression model
+   c) Best regularized regression model to control the multicollinearity in multiple linear regression model
+
+3. Describe supervised-learning classification regression model with focus on:
+   a) Model-fit indices
+   b) Confusion matrix
+   c) Prediction accuracy indices
+
+4. Describe supervised-learning method with focus on:
+   a) Single-layer, feed-forward neural network
+   b) Activation functions used in the neural network models
+   c) Network model with input, hidden, and output layers
+
+5. Describe decision-tree classification model with focus on:
+   a) Bagging
+   b) Improved bagging
+   c) Boosting
+
+GROUP B [5 x 6 = 30]
+
+6. Do the following in RStudio using ggplot2 package with R script:
+   a) Create a dataset with the following variables: age (18-99 years), sex (male/female), educational levels (No education/Primary/Secondary/Beyond secondary), socio-economic status (Low, Middle, High), and body mass index (14-38), with random 100 cases of each variable. Your roll number must be used to set the random seed.
+   b) Create a line chart of age variable using ggplot2 package and interpret the result carefully.
+   c) Create scatter plot of age and body mass index variables using ggplot2 package and interpret the result carefully.
+   d) Create classes of body mass index variable as <18, 18-24, 25-30, 30+ and show it as pie chart using ggplot2 package and interpret carefully.
+   e) Create classes of age variable as <15, 15-59, and 60+ and show it as bar diagram using ggplot2 package and interpret it carefully.
+
+7. Do the following in RStudio using Bfox dataset with R script:
+   a) Divide the Bfox data into train and test datasets with 70:30 random splits.
+   b) Fit a supervised linear regression model and KNN regression model on train data with debt as dependent variable and all other variables as independent variables.
+   c) Get the summary of the model, fit indices, and interpret them carefully.
+   d) Predict the debt variable in the test data and interpret the result carefully.
+   e) Get the fit indices (R-square, MSE, RMSE) of the predicted model and interpret them carefully.
+
+8. Do the following in RStudio using Arrests dataset with R script:
+   a) Divide the mtcars data into train and test datasets with 80:20 random splits.
+   b) Fit a supervised logistic regression model and naive Bayes classification models on train data with released as dependent variable and colour, age, sex, employed, and citizen as independent variables.
+   c) Get the confusion matrix, sensitivity, and specificity of the fitted model and interpret them carefully.
+   d) Predict the transmission variable in the test data and interpret the result carefully.
+   e) Get the confusion matrix, sensitivity, and specificity of the predicted model and interpret them carefully.
+
+9. Do the following using mtcars dataset with R script:
+   a) Create a car scale with the variables using the Principal Component Analysis (PCA) model.
+   b) Interpret the results of the PCA carefully in terms of Kaiser's criterion.
+   c) Get Scree plot and decide the number of components to be retained.
+   d) Get the biplot of the fitted model and interpret it carefully.
+   e) Improve the fitted model with VARIMAX process and interpret the results carefully.
+
+   OR
+
+   Do the following using USArrests dataset in RStudio with R script:
+   a) Get dissimilarity distance as state.dissimilarity object.
+   b) Fit a classical multidimensional model using the state.dissimilarity object.
+   c) Get the summary of the model and interpret it carefully.
+   d) Get the plot of the model and interpret it carefully.
+   e) Compare this model with the first two components from principal component analysis model in this data.
+
+10. Use mtcars data and do the following with R script:
+    a) Fit a hierarchical clustering model using single linkage and get the dendrogram for this model.
+    b) Fit a hierarchical clustering model using complete linkage and get the dendrogram for this model.
+    c) Fit a hierarchical clustering model using average linkage and get the dendrogram for this model.
+    d) Show the number of clusters (k) to retain for the data using ablines in the dendrogram of the best model.
+    e) Get the best value of number of clusters to form (k) using the fitted model above.
+
+    OR
+
+    Load the USArrests data file in RStudio and do the following with R script:
+    a) Fit a k-means clustering model in the data with k = 2 and 3.
+    b) Get the cluster means and within sum of square value of each model and interpret them carefully.
+    c) Plot the clusters formed by k = 2 and 3 and interpret them carefully.
+    d) Add cluster centers for plot with k = 3 and interpret it carefully.
+    e) Visualize the clusters for k = 3 and interpret it carefully.
+
+======================================================================
+FIRST ASSESSMENT 2080
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+School of Mathematical Sciences
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in answer sheets and use a laptop for answering question numbers 6-10 with R scripts. R scripts and outputs/interpretation of question numbers 6-10 must be knitted as HTML file by saving it in a folder with name/exam roll number and submitted for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Explain how to import these types of data in R using base R functions:
+   a) Comma-separated values text file
+   b) Excel data file
+   c) SPSS data file
+
+2. Explain the following data types in R with examples and R codes:
+   a) Numeric and integer
+   b) Categorical and factor
+   c) Data and Date as well as time
+
+3. Explain these terms with examples for R:
+   a) Arrays and matrices
+   b) List and unlist
+   c) Data frame and data table
+
+4. Explain the following with examples for R:
+   a) Base R code versus pipe-operator code
+   b) For-loop code versus pipe-operator code
+   c) tee pipe operator versus exposition pipe operator
+
+5. Explain the following in R with example:
+   a) Package
+   b) Installation of package
+   c) Development of package
+
+GROUP B [5 x 6 = 30]
+
+6. Open RStudio and do the following with R script and knit HTML output:
+   a) Define integers from 1 to 15 using three different coding approaches as I.
+   b) Define these five numbers: 1.1, 2.2, 3.3, 4.4, and 5.5 and save it as N.
+   c) Add, subtract, multiply, and divide I from N and interpret the results carefully.
+   d) Perform matrix multiplication of I and N and interpret the result carefully.
+   e) Transpose I and N, perform matrix multiplication, and interpret the result carefully.
+
+7. Do the following in RStudio with R script to knit HTML output:
+   a) Load the in-built airquality data available in base R as AQ object.
+   b) Check the structure of AQ and explain class of each variable.
+   c) Replace missing values of Ozone variable with median of this variable.
+   d) Replace missing values of Solar.R variable with mean of this variable.
+   e) Create Date variable in AQ object using Month and Day variables for year 2020.
+
+8. Use the cleaned AQ object to do the following in RStudio with R script to knit HTML output:
+   a) Create line plot of Temp variable with Day as the row index and interpret it carefully.
+   b) Create bar plot of Temp variable after defining class intervals systematically.
+   c) Create histogram of Temp variable and compare it with the bar plot of Temp variable.
+   d) Plot Normal Q-Q plot of Temp variable and interpret it carefully.
+   e) Create a scatter plot of Temp and Wind variables and interpret it carefully.
+
+9. Do the following in RStudio with tidyverse package using R script to knit HTML output:
+   a) Define a tibble having country, year, cases, and population variables with 10 random data each.
+   b) Transform this tibble to long format and interpret it in terms of tidy data format.
+   c) Transform the cases variable as log of cases (LnCase) and population variable as log of population (LnPop).
+   d) Create scatter plots of: (1) Cases and population, (2) LnCase and population, (3) Cases and LnPop, and (4) LnCase and LnPop in a single graph window and interpret it carefully.
+
+   OR
+
+   Use the cleaned AQ file in RStudio and do the following with R scripts and HTML outputs:
+   a) Get reference range of Temp variable using mean and standard deviation.
+   b) Plot histogram of Temp variable and show the outliers of Temp with reference-range limits.
+   c) Get reference range of Temp variable using median and interquartile range.
+   d) Plot box plot of Temp variable and show the outliers of Temp with reference-range limits.
+   e) Which measure of central tendency and dispersion should be used for this variable? Why?
+
+10. Load the igraph package in RStudio and do the basic SNA as follows with R script and HTML output:
+    a) Define g as graph object with (1, 2) as its elements.
+    b) Plot g and interpret it carefully.
+    c) Define g1 as graph object with ("R", "S", "S", "T", "T", "R", "R", "T", "U", "S") as its elements.
+    d) Plot g1 with node color as green, node size as 30, link color as red, and link size as 5 and interpret it.
+    e) Get degree, closeness, and betweenness of g1 and interpret them carefully.
+
+    OR
+
+    Do the following in RStudio with R script and HTML outputs:
+    a) Open R and then go to Help and Manuals in PDF and open An Introduction to R file.
+    b) Import this PDF file in R using pdftools package.
+    c) Perform pre-processing and create corpus afterwards.
+    d) Find the most frequent terms and create histogram of the most frequent.
+    e) Create word cloud of the corpus, color it using rainbow or RColorBrewer package.
+    f) Perform topic modelling and interpret the result carefully.
+
+======================================================================
+FIRST RE-ASSESSMENT 2080
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+School of Mathematical Sciences
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: Masters in Data Science / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10. R scripts and outputs/interpretation of question numbers 6-10 must be knitted as HTML file. Save the HTML file in a folder with name/exam roll number and submit them for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Explain how to import these types of data in R using dplyr package:
+   a) Tab-separated values text file
+   b) Comma-separated values text file
+   c) SPSS data file
+
+2. Explain the following data types in R with examples:
+   a) Integer variable is different than number variable
+   b) Categorical variable is different than factor variable
+   c) Date variable is different than Date as well as time variable
+
+3. Explain these terms with examples for R:
+   a) Getting multi-way table with array
+   b) Creating class intervals of continuous variable
+   c) Missingness versus nothingness
+
+4. Explain the following with examples for R:
+   a) Reference range based on mean
+   b) Reference range based on median
+   c) Outliers and extreme values
+
+5. Explain the following in R with example:
+   a) Nodes and edges
+   b) Diameter
+   c) Edge density
+
+GROUP B [5 x 6 = 30]
+
+6. Open RStudio and do the following with R script and knit HTML output:
+   a) What happens when 4L is multiplied by 3.2?
+   b) What happens when 4L is multiplied by 2L?
+   c) Define blood with O, O, A, A, B, B and check its type and attributes with your comments.
+   d) Define x with 1, 2, NA, 8, 3, NA, 3 and get its mean with or without pipes.
+   e) Get the first and sixth elements of x using sub-setting codes and its explanation.
+
+7. Do the following in RStudio with R script to knit HTML output:
+   a) Define an object rating with 9, 2, 5, 8, 6, 1, 3, 2, 8, 4, 6, 8, 7, 1, 2, 6, 10, 5, 6, 9, 6, 2, 4, 7.
+   b) Replicate the given table obtained from SPSS software for the rating object in R.
+
+   SPSS-style frequency table:
+
+   Rating | Frequency | Percent | Valid Percent | Cumulative Percent
+   1      | 2         | 8.3     | 8.3           | 8.3
+   2      | 4         | 16.7    | 16.7          | 25.0
+   3      | 1         | 4.2     | 4.2           | 29.2
+   4      | 2         | 8.3     | 8.3           | 37.5
+   5      | 2         | 8.3     | 8.3           | 45.8
+   6      | 5         | 20.8    | 20.8          | 66.7
+   7      | 2         | 8.3     | 8.3           | 75.0
+   8      | 3         | 12.5    | 12.5          | 87.5
+   9      | 2         | 8.3     | 8.3           | 95.8
+   10     | 1         | 4.2     | 4.2           | 100.0
+   Total  | 24        | 100.0   | 100.0         |
+
+8. Use the airquality data as AQ1 to do the following in RStudio with R script to knit HTML output:
+   a) Replace missing values of Ozone variable with the best measure of central tendency.
+   b) Create a Date variable in AQ object using Month and Day variable for year 2022.
+   c) Create line plot of Ozone variable with Date as the row index and interpret it carefully.
+   d) Get class intervals of the cleaned Ozone variable using range, square root, and zero rounding.
+   e) Get frequency distribution (n and %) of Ozone variable class intervals and interpret it carefully.
+
+9. Do the following in RStudio with tidyverse package using R script to knit HTML output:
+   a) Define a tibble having country, year, cases, and population variables with 100 random data each.
+   b) Transform the cases variable as log of cases (LnCase) and population variable as log of population (LnPop).
+   c) Create scatterplots of: (1) Cases and population, (2) LnCase and population, (3) Cases and LnPop, and (4) LnCase and LnPop in a single graph window with base R plot code and interpret it carefully.
+
+   OR
+
+   Load the igraph package in RStudio and do the basic SNA as follows with R script and HTML output:
+   a) Define g as graph object with (1, 2, 2, 3, 3, 4, 4, 1) as its elements.
+   b) Plot g with node color as green, node size as 30, link color as red, and link size as 5 and interpret it.
+   c) Plot the g as undirected arguments and interpret it carefully.
+   d) Plot g with seven nodes and interpret it carefully.
+   e) Get degree, closeness, and betweenness of g and interpret them carefully.
+
+10. Use the cleaned AQ file in RStudio and do the following with R scripts and HTML outputs:
+    a) Get reference range of Ozone variable using mean and standard deviation.
+    b) Plot histogram of Ozone variable and show the outliers of Ozone with reference-range limits.
+    c) Get reference range of Ozone variable using median and interquartile range.
+    d) Plot boxplot of Ozone variable and show the outliers of Ozone with reference-range limits.
+    e) Write a summary of the results obtained from the histogram and boxplot.
+
+    OR
+
+    Do the following in RStudio with R script and HTML outputs:
+    a) Open R and then go to Help and Manuals in PDF and open An Introduction to R file.
+    b) Import this PDF file in R using pdftools package.
+    c) Perform pre-processing and create corpus afterwards.
+    d) Find the most frequent terms and create histogram of the most frequent.
+    e) Create word cloud of the corpus, color it using rainbow or RColorBrewer package.
+    f) Perform topic modelling and interpret the result carefully.
+
+======================================================================
+FIRST ASSESSMENT 2080 (ALTERNATE/ADDITIONAL SCANNED PAPER)
+======================================================================
+
+Tribhuvan University
+Institute of Science and Technology
+
+Subject: Statistical Computing with R
+Course No.: MDS 503
+Level: MDS / I Year / I Semester
+Full Marks: 45
+Pass Marks: 22.5
+Time: 2 hours
+
+Candidates are required to write answers with examples for question numbers 1-5 in the answer sheet and use a laptop for answering question numbers 6-10 with R scripts. R scripts must be knitted as PDF with the outputs/interpretation of question numbers 6-10 and saved in a folder with the R script and name/exam roll number for grading.
+
+Attempt ALL questions.
+
+GROUP A [5 x 3 = 15]
+
+1. Explain these terms with examples for R:
+   a) Getting multi-way table with array
+   b) Creating class intervals of continuous variable
+   c) Missingness versus nothingness
+
+2. Explain the following concepts with focus on R software:
+   a) Raw data
+   b) Data wrangling
+   c) Tidy data
+
+3. Explain the following with examples for R:
+   a) Reference range based on mean
+   b) Reference range based on median
+   c) Outliers and extreme values
+
+4. Explain the following concepts with focus on R software:
+   a) Test of normality
+   b) Parametric tests
+   c) Residual analysis
+
+5. Describe decision-tree classification model with focus on:
+   a) Bagging
+   b) Improved bagging
+   c) Boosting
+
+GROUP B [5 x 6 = 30]
+
+6. Do the following in RStudio with R script:
+   a) Create a dataset with the following variables: age (18-99 years), sex (male/female), educational levels (No education/Primary/Secondary/Beyond secondary), socio-economic status (Low, Middle, High), and body mass index (14-38), with 150 random cases of each variable. Your exam roll number must be used to set the random seed.
+   b) Show a sub-divided bar diagram of body mass index variable by sex and socio-economic variables separately with interpretations.
+   c) Show multiple bar diagram of age variable with sex and educational-level variables and interpret it carefully.
+   d) Show boxplots of age and body mass index variable separately and interpret the results carefully.
+   e) Create histogram of age and body mass index variable separately and interpret the results carefully.
+
+7. Do the following in RStudio with R script to knit HTML output:
+   a) Define an object rating with 9, 2, 5, 8, 6, 1, 3, 2, 8, 4, 6, 8, 7, 1, 2, 6, 10, 5, 6, 9, 6, 2, 4, 7 values.
+   b) Replicate the given table obtained from SPSS software for the rating object in R.
+
+   Rating | Frequency | Percent | Valid Percent | Cumulative Percent
+   1      | 2         | 8.3     | 8.3           | 8.3
+   2      | 4         | 16.7    | 16.7          | 25.0
+   3      | 1         | 4.2     | 4.2           | 29.2
+   4      | 2         | 8.3     | 8.3           | 37.5
+   5      | 2         | 8.3     | 8.3           | 45.8
+   6      | 5         | 20.8    | 20.8          | 66.7
+   7      | 2         | 8.3     | 8.3           | 75.0
+   8      | 3         | 12.5    | 12.5          | 87.5
+   9      | 2         | 8.3     | 8.3           | 95.8
+   10     | 1         | 4.2     | 4.2           | 100.0
+   Total  | 24        | 100.0   | 100.0         |
+
+8. Do the following in RStudio with R script:
+   a) Create a dataset with the following variables: age (18-99 years), sex (male/female), educational levels (No education/Primary/Secondary/Beyond secondary), socio-economic status (Low, Middle, High), and body mass index (14-38), with random 250 cases of each variable. Your exam roll number must be used to set the random seed.
+   b) Create scatterplot of age and body mass index variable and interpret it carefully.
+   c) Which correlation coefficient must be used based on the interpretation of the scatterplot? Why?
+   d) Compute the best correlation coefficient identified from the scatterplot and interpret it carefully.
+   e) Test whether this correlation coefficient is statistically valid or not and justify its value.
+
+   OR
+
+   a) Create a dataset with the following variables: age (18-99 years), sex (male/female), educational levels (No education/Primary/Secondary/Beyond secondary), socio-economic status (Low, Middle, High), and body mass index (14-38), with random 250 cases of each variable. Your exam roll number must be used to set the random seed.
+   b) Check if body mass index variable follows normal distribution using suggestive plot and confirmative tests and interpret the results carefully.
+   c) Check if body mass index variable has equal variance for sex variable using suggestive plot and confirmatory tests and interpret the results carefully.
+   d) Which independent-sample t-test must be used to compare body mass index by sex? Why?
+   e) Perform the independent-sample t-test identified above and interpret it carefully.
+
+9. Do the following in RStudio using mtcars dataset with R script:
+   a) Divide the mtcars data into train and test datasets with 70:30 random splits.
+   b) Fit a supervised logistic regression model and naive Bayes classification models on train data with transmission (am) as dependent variable and miles per gallon, displacement (disp), horse power (hp), and weight (wt) as independent variables.
+   c) Predict the transmission (am) variable in the test data for both models and interpret the result carefully.
+   d) Get the confusion matrix, sensitivity, and specificity of both models using predicted transmission variable on test data and interpret them carefully.
+   e) Which supervised classification model is the best for doing prediction? Why?
+
+10. Do the following using the given dataset of 10 US cities in RStudio with R script:
+
+    Distance matrix:
+
+                 Atlanta Chicago Denver Houston Los Angeles Miami New York San Francisco Seattle Washington D.C.
+    Atlanta             0     587   1212     701        1936   604      748          2139    2182            543
+    Chicago           587       0    920     940        1745  1188      713          1858    1737            597
+    Denver           1212     920      0     879         831  1726     1631           949    1021           1494
+    Houston           701     940    879       0        1374   968     1420          1645    1891           1220
+    Los Angeles      1936    1745    831    1374           0  2339     2451           347     959           2300
+    Miami             604    1188   1726     968        2339     0     1092          2594    2734            923
+    New York          748     713   1631    1420        2451  1092        0          2571    2408            205
+    San Francisco    2139    1858    949    1645         347  2594     2571             0     678           2442
+    Seattle          2182    1737   1021    1891         959  2734     2408           678       0           2329
+    Washington D.C.   543     597   1494    1220        2300   923      205          2442    2329              0
+
+    a) Get this data in R and compute dissimilarity distance as city.dissimilarity object.
+    b) Fit a classical multidimensional model using city.dissimilarity object.
+    c) Get the summary of the model and interpret it carefully.
+    d) Get the biplot of the model and interpret it carefully.
+    e) Compare this model with the first two components from principal component analysis model in this data.
+
+    OR
+
+    Use the first four variables of iris data file in RStudio and do the following with R script:
+    a) Fit a k-means clustering model in the data with k = 2 and k = 3.
+    b) Plot the clusters formed with k = 3 in the single graph and interpret it carefully.
+    c) Add cluster centers for the plot of clusters formed with k = 3 and interpret it carefully.
+    d) Compare the k = 3 cluster with Species variable of this data using confusion matrix and interpret the result carefully.
+
+END OF TRANSCRIPTION

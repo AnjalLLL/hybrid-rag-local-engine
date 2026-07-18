@@ -304,10 +304,20 @@ class RagQueryEngine:
             return
 
         print(f"\n\n[R check: found a code error, requesting one correction...\n{stderr.strip()}]\n")
+        not_found_match = re.search(r"object '([^']+)' not found", stderr)
+        not_found_hint = (
+            f"The undefined object '{not_found_match.group(1)}' is used but never actually "
+            "assigned anywhere in the code -- this is usually a variable you described "
+            "extracting (e.g. in a comment) but forgot to write the real assignment line for. "
+            "Add the missing assignment itself, not just a reference to the name.\n\n"
+            if not_found_match
+            else ""
+        )
         correction_prompt = (
             f"{original_prompt}\n\n"
             "=== PREVIOUS ANSWER FAILED TO RUN ===\n"
             f"R error:\n{stderr.strip()}\n\n"
+            f"{not_found_hint}"
             "Fix only what is broken and give the complete corrected answer, following the "
             "same rules as before.\n"
             "=== CORRECTED ANSWER ===\n"
@@ -744,7 +754,7 @@ def build_prompt(
 
     if question_info.depth == "long":
         depth_rule = (
-            "11. This is a long-form, multi-part exam question. For each sub-part listed above: "
+            "12. This is a long-form, multi-part exam question. For each sub-part listed above: "
             "give its code first, then a short exam-style interpretation for that sub-part "
             "directly underneath, before moving to the next sub-part. Reuse the same variable "
             "and model/object names you defined in earlier sub-parts -- never redefine or "
@@ -752,7 +762,7 @@ def build_prompt(
         )
     else:
         depth_rule = (
-            "11. This is a short exam question worth few marks. Answer directly and concisely: "
+            "12. This is a short exam question worth few marks. Answer directly and concisely: "
             "the minimum correct code needed, plus a one-line example of the syntax if it "
             "clarifies usage, and no extended prose."
         )
@@ -783,10 +793,24 @@ def build_prompt(
         "numeric ranges as more important unless you scale() the numeric predictors first -- "
         "do this whenever the question's variables are on different measurement units, which "
         "is the normal case for real datasets.\n"
-        "7. If the question has lettered sub-parts, answer under the same labels, for example "
+        "7. Never invent a $Field(args)-style chain to pull a value out of a test/model "
+        "result -- R has no method that lets you call $Pr(>F) or similar like a function "
+        "after another $ access (e.g. summary(aov_model)$Group$`Pr(>F)` is invalid syntax). "
+        "by()/tapply() return one result PER GROUP, not a single object, so they have no "
+        "$p.value of their own either -- by(...)$p.value silently returns NULL instead of "
+        "erroring, and using that in a condition (e.g. all(by(x, g, shapiro.test)$p.value > "
+        "0.05)) is a real, exam-marked-wrong bug that will NOT show up as a crash, since "
+        "all(NULL > 0.05) is vacuously TRUE and the branch it guards always runs regardless "
+        "of the actual per-group results. Extract any such value properly first -- "
+        "sapply(by_result, function(res) res$p.value) for a by()/tapply() result, or "
+        "summary(aov_model)[[1]][[\"Pr(>F)\"]][1] for an aov() summary -- into a plain named "
+        "variable, then use that variable in the condition. If you don't actually need the "
+        "value in code, it is simpler and safer to just print() the result and read it "
+        "directly instead of extracting it.\n"
+        "8. If the question has lettered sub-parts, answer under the same labels, for example "
         "(a), (b), (c), and address every sub-part listed below -- do not skip any requested "
         "computation, plot, or interpretation. If it has no parts, do not invent part labels.\n"
-        "8. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
+        "9. If a sub-part's text says 'plot', 'graph', or 'visualize', that sub-part's code must "
         "contain an actual call that renders a plot -- do not stop at fitting the model. If the "
         "question asks for a 'single graph'/'single plot' over 3+ variables, note that "
         "plot(df, col = ...) on the WHOLE multi-column data frame is wrong because it draws a "
@@ -794,19 +818,19 @@ def build_prompt(
         "and VERIFIED LIBRARY REFERENCE below actually demonstrate for this exact technique "
         "(e.g. plotting two chosen variables in base R, or a dedicated multi-variable plotting "
         "function) rather than guessing a library that isn't shown there.\n"
-        "9. Any interpretation must state the concrete pattern implied by the question/data, "
+        "10. Any interpretation must state the concrete pattern implied by the question/data, "
         "naming the actual variables and a direction (higher/lower, increases/decreases). Bad: "
         "'the data is divided into two clusters.' Good: 'cluster 1 has higher Murder and "
         "Assault rates than cluster 2, so it groups higher-crime states separately from "
         "lower-crime states.' Never submit an interpretation that would be equally true for "
         "any dataset -- it must reference this question's specific variables.\n"
-        "10. Before writing your final answer, re-read the QUESTION and the LITERAL "
+        "11. Before writing your final answer, re-read the QUESTION and the LITERAL "
         "REQUIREMENTS section below (when present) line by line, and check your draft answer "
         "against each one -- a count, a word like 'single'/'only'/'each', or a sub-part is "
         "easy to lose track of once you're deep in the code, so verify it explicitly rather "
         "than trusting your first pass.\n"
         f"{depth_rule}\n"
-        "12. Output only the answer. Start directly with the code or the answer text. Do not "
+        "13. Output only the answer. Start directly with the code or the answer text. Do not "
         "restate these rules and do not write a preamble such as 'Here is the answer'.\n\n"
         "=== CONTEXT ===\n"
         f"{context}\n\n"

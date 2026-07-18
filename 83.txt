@@ -1,0 +1,141 @@
+First Assessment 2083
+
+Group A
+[15 × 3 = 15]
+
+1. Explain how to import these types of data in R using base R functions:
+a) CSV data file
+b) Excel data file
+c) SPSS data file
+
+2. Describe how to do sub-setting with codes for followings:
+a) Define the 5x8 matrix and select last two rows
+b) Add 2 new rows in this matrix
+c) Add 2 new columns in this matrix
+
+3. Explain differences of these terms with example R codes:
+a) Character and factor
+b) Array and list
+c) Data frame and tibble
+
+4. Describe the following concepts on working efficiently with "big data" in R software with:
+a) Sample and model
+b) Chunk and pull
+c) Push to compute
+
+5. Explain the function of pipe operators given below with R codes:
+a) Tee operator
+b) Exposition operator
+c) Assignment operator
+
+Group B
+[5 × 6 = 30]
+
+6. Do the followings with R script in R Studio to knit HTML output:
+a) Define a column vector X with numbers between 1 and 25
+b) Define another column vector Y with cubes of elements of X
+c) Plot X and Y in a single graph and interpret the result carefully
+
+7. Create a function and do as follows to knit HTML output:
+a) Define a function to compute minimum sample size for a proportion (p) i.e. n=(Z^2*p*q)/e^2
+b) Get sample size for a p=0.10, p=0.50 and p=0.90 with this user defined function using Z=1.96, e=5%
+c) Explain why sample size for p= 0.50 is the highest with justification
+
+8. Do the following in R Studio with "plyr" and "tidyr" package using R Script to knit HTML output:
+a) Define a tibble with "id" and "name" variables and another tibble with "id" and "age" variables for fifty individuals
+b) Merge these two tibbles using Base R function as well as left join function of dplyr package
+c) Transform the merged tibble into long format and interpret the result carefully
+
+9. Use the "mtcars" dataset of R and do as follows with R script to knit HTML output:
+a) Plot histogram of "mpg" variable and interpret it carefully
+b) Plot Q-Q plot of "mpg" variable, add normal Q-Q line of red color on it and interpret it carefully
+c) Use the appropriate test of normality for "mpg" variable and interpret the result carefully
+
+OR
+
+Use the "airquality" dataset of R to do following using R Seript to knit HTML output:
+a) Create class intervals of "Wind" variable using range and rounded square root of range
+b) Create bar plot of "Wind" variable using these class intervals and interpret it carefully
+c) Create histogram of "Wind" variable and compare it with the bar plot obtained earlier
+
+10. Do the following in R Studio using R Script to knit HTML output:
+a) Get help for in-built "merge" function in R and copy it as text file
+b) Import this text file and perform pre-processing to create "corpus" and "term document matrix"
+c) Get term frequencies, bar plot of term frequencies and word cloud of term frequencies and interpret them carefully
+
+OR
+
+Do as follows in R console and then to R Studio with R script to knit HTML outputs:
+a) Open R console and then go to Help and Manuals (in PDF) and open "An Introduction to R" file
+b) Save this file in the working directory and import this pdf file in R studio using "pdftools" package
+c) Perlorm pre-processing and create 'corpus' perform sentiment analysis and interpret it carefully
+***
+
+
+
+Second Assessment 2083
+
+Group A
+[5 × 3 = 15)
+
+1. Describe the following concepts with examples:
+a) Wilkinson's approach of grammar of graphics
+b) ggplot approach of grammar of graphics
+
+2. Discuss following concepts with clear examples:
+a) One sample z-test
+b) One sample t-test
+
+3. Explain followings concepts with clear examples:
+a) Mann-Whitney U test
+b) Tukey post-hoc test
+
+4. Discuss supervised linear regression models with focus on:
+a) K nearest neighbor
+b) Artificial neural network
+
+5. Explain supervised learning classification regression model with:
+a) Decision tree
+b) Random forest
+
+Group B
+(5 × 6= 30)
+
+6. Do the following in R Studio using ggplot2 and plyr packages and knit output as PDF file:
+a) Create a dataset with following variables: age (18-69 years), height (110 - 175 centimeters), weight (45-90 kg) with random 150 cases of each variable. Your roll number must be used to set the random seed.
+b) Compute body mass index (BMI) variable as: BMI = [(weight in kg) / (height in meter squared)]
+c) Show the distribution of BMI variable with histogram using ggplot2 package and interpret it carefully.
+
+7. Do the following in R Studio using "airquality" dataset of R with R script to knit PDF output:
+a) Perform test of normality of "Wind" variable by each category of "Month" variable and interpret all the results carefully
+b) Perform test of equality of variance on "Wind" variable by each category of Month variable and interpret the result carefully
+c) Compare Wind by Month using the best statistical test for this data and interpret the result carefully
+
+8. Do the following in R Studio with R script to knit PDF output:
+a) Create a dataset with 300 random cases, I random binary (1 and 0) variable and six random non-binary (3 categorical and 3 continuous) variables with your roll number as random seed
+b) Divide it into train and test datasets with 70:30 random splits 
+c) Fit a supervised logistic regression and naïve Bayes classification models on train and test datasets with binary variable as dependent variable and all other four variables as independent variable, and interpret the results carefully in terms of underfitting, normal fitting and overfitting
+
+9. Do as follows using in-built "USArrests" dataset with R script to knit PDF output:
+a) Create a "criminality scale" of four variables of this dataset using the Principal Component Analysis
+b) Compute the eigenvalues and interpret the PCA result carefully using Kaiser's eigenvalue criteria
+c) Show the Scree plot and decide on the number of components to retain with careful interpretation
+
+OR
+
+Do as follows using given dataset of "usarrests" in R studio with R script:
+a) Get dissimilarity distance as city dissimilarity object
+b) Fit a classical multidimensional model using the city.dissimilarity object
+c) Get the summary and bi-plot of the model and interpret it carefully
+
+10. Do the following in R Studio with R script to knit PDF output:
+a) Create a dataset with 300 random cases and five random variables with your roll number as random seed
+b) Fit a hierarchical clustering model using complete linkage and get the dendogram for this model
+c) Find the best hierarchical clustering model for this data and locate the number of clusters for it
+
+OR
+
+Use the four variables of "USArrests" data file into R Studio and do as follows with R script to knit PDF output:
+a) Fit a k-means clustering model in the data with k=2, plot it in the single graph and interpret it carefully
+b) Fit a k-means clustering model in the data with k=3, plot it in the single graph and interpret it carefully
+c) Add cluster centers for the plot of clusters formed with k=3 and interpret it carefully
