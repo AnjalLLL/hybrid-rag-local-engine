@@ -63,9 +63,22 @@ GENERATION_OPTIONS = {
 }
 
 MARKS_TAG_RE = re.compile(r"\(?\s*(\d+)\s*marks?\s*\)?|\[\s*(\d+)\s*\]", re.IGNORECASE)
+# Lets --marks work when typed directly into the interactive "Question>" prompt, not just
+# as a real CLI flag -- argparse only ever sees flags present at process launch, so anything
+# typed after that point (including in interactive mode) needs to be parsed out of the
+# question text itself instead.
+INLINE_MARKS_FLAG_RE = re.compile(r"--?marks[=\s]+(\d+)", re.IGNORECASE)
 # Matches "a)", "(a)", and "a." (the last one requires trailing whitespace so it doesn't
-# fire on abbreviations like "e.g." or "i.e.").
-SUB_PART_RE = re.compile(r"(?:^|\s|\()([a-h])(?:\)|\.\s)\s*", re.IGNORECASE)
+# fire on abbreviations like "e.g." or "i.e."). The prefix is a general "not preceded by a
+# letter or digit" boundary (lookbehind) rather than an enumerated list of allowed
+# punctuation -- copy-pasted exam text puts all sorts of characters directly before a
+# sub-part marker with no space (colon, period, semicolon, dash, newline...), and
+# whitelisting them one at a time keeps missing the next one that shows up. The two extra
+# negative lookbehinds guard against the general prefix rule swallowing "e.g." and "i.e." --
+# both have a single letter immediately before a period, and their SECOND letter (g, e) falls
+# inside a-h, which combined with the general prefix/suffix rules above would otherwise read
+# as a sub-part marker (e.g. "e.g. " -> prefix "." + captured "g" + suffix ". ").
+SUB_PART_RE = re.compile(r"(?<![a-zA-Z0-9])(?<!e\.)(?<!i\.)([a-h])(?:\)|\.\s)\s*", re.IGNORECASE)
 IDENTIFIER_CALL_RE = re.compile(r"\b([A-Za-z][A-Za-z0-9_.]*)\s*\(")
 PROPER_NOUN_RE = re.compile(r"\b([A-Z][A-Za-z0-9]{2,})\b")
 
@@ -93,19 +106,30 @@ class QuestionInfo(NamedTuple):
     topic_tokens: List[str]
     identifier_tokens: List[str]
     literal_requirements: List[str]
+    cleaned_question: str
 
 
 def analyze_question(question: str, marks_override: Optional[int] = None) -> QuestionInfo:
     """Classify a question's depth/marks, split its sub-parts, and pull retrieval hints.
 
-    Detection order: an explicit CLI override, then an explicit "(N marks)"/"[N]" tag in
-    the question text, then a fallback heuristic (>=2 lettered sub-parts implies a long,
-    multi-part 6-mark question; otherwise it's treated as a short 3-mark question).
+    Detection order: an explicit CLI --marks flag, then an inline "--marks N" typed as
+    part of the question text itself (works the same in interactive mode, where argparse
+    never sees it), then an explicit "(N marks)"/"[N]" tag in the question text, then a
+    fallback heuristic (>=2 lettered sub-parts implies a long, multi-part 6-mark question;
+    otherwise it's treated as a short 3-mark question).
     """
+
+    question = _strip_duplicate_tail(question)
+
+    inline_marks_match = INLINE_MARKS_FLAG_RE.search(question)
+    if inline_marks_match:
+        question = INLINE_MARKS_FLAG_RE.sub("", question).strip()
 
     sub_parts = _split_sub_parts(question)
 
     marks = marks_override
+    if marks is None and inline_marks_match:
+        marks = int(inline_marks_match.group(1))
     if marks is None:
         tag_match = MARKS_TAG_RE.search(question)
         if tag_match:
@@ -130,7 +154,38 @@ def analyze_question(question: str, marks_override: Optional[int] = None) -> Que
         topic_tokens=topic_tokens,
         identifier_tokens=identifier_tokens,
         literal_requirements=literal_requirements,
+        cleaned_question=question,
     )
+
+
+def _strip_duplicate_tail(question: str) -> str:
+    """Trim an accidentally duplicated trailing sub-part off the end of a question.
+
+    Pasting a previous answer's code comment back into the next question (a plausible
+    clipboard mishap) can leave a duplicate sub-part stuck on the end, e.g. "...c) ...# a)
+    ...". The prompt deliberately echoes the question text near the very end (to fight
+    "lost in the middle" on a long context), so a duplicate tail like this gets emphasized
+    as if it were the real final instruction, and the model answers only that repeated part
+    and drops the rest. If the LAST detected sub-part exactly duplicates an EARLIER one,
+    cut it from the question text entirely rather than just the derived checklist.
+    """
+
+    markers = list(SUB_PART_RE.finditer(question))
+    if len(markers) < 2:
+        return question
+
+    seen_bodies: set = set()
+    for index, marker in enumerate(markers):
+        start = marker.end()
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(question)
+        body = " ".join(question[start:end].strip().lower().split())
+        if not body:
+            continue
+        if body in seen_bodies and index == len(markers) - 1:
+            return question[: marker.start()].rstrip(" #\t\n-;:")
+        seen_bodies.add(body)
+
+    return question
 
 
 def extract_literal_requirements(question: str) -> List[str]:
@@ -169,14 +224,24 @@ def _split_sub_parts(question: str) -> List[str]:
     if len(markers) < 2:
         return []
 
-    parts = []
+    parts: List[str] = []
+    seen_bodies: set = set()
     for index, marker in enumerate(markers):
         start = marker.end()
         end = markers[index + 1].start() if index + 1 < len(markers) else len(question)
         label = marker.group(1).lower()
         text = question[start:end].strip().rstrip(";").strip()
-        if text:
-            parts.append(f"{label}) {text}")
+        if not text:
+            continue
+        # A pasted question sometimes has an accidental duplicate tail (e.g. leftover
+        # clipboard content re-pasted), which would otherwise produce two sub-parts with the
+        # same label -- a checklist with "a)" listed twice reads as a signal to only answer
+        # (a) again, so silently dropping the repeat keeps the checklist well-formed.
+        normalized_body = " ".join(text.lower().split())
+        if normalized_body in seen_bodies:
+            continue
+        seen_bodies.add(normalized_body)
+        parts.append(f"{label}) {text}")
     return parts
 
 
@@ -218,6 +283,7 @@ class RagQueryEngine:
         """Retrieve context and stream an answer for a question."""
 
         question_info = analyze_question(question, marks_override=marks_override)
+        question = question_info.cleaned_question
         resolved_top_k = top_k or (TOP_K_LONG if question_info.depth == "long" else TOP_K)
 
         print(
@@ -713,6 +779,7 @@ def build_prompt(
 
     if question_info is None:
         question_info = analyze_question(question)
+    question = question_info.cleaned_question
 
     context_blocks = []
     for position, chunk in enumerate(retrieved_chunks, start=1):

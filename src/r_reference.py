@@ -288,12 +288,27 @@ REFERENCE_LIBRARY: Dict[str, ReferenceEntry] = {
     ),
     "knn": ReferenceEntry(
         keywords=("knn", "k-nearest", "nearest neighbour", "nearest neighbor"),
-        required_library="library(class)",
-        canonical_skeleton="library(class)\npred <- knn(train = train_x, test = test_x, cl = train_y, k = k)",
+        required_library="library(class)  # classification only -- see below for regression",
+        canonical_skeleton=(
+            "# KNN CLASSIFICATION (categorical/factor response), verified in your materials\n"
+            "# (ISLR2 ch.4):\n"
+            "library(class)\n"
+            "pred <- knn(train = train_x, test = test_x, cl = train_y, k = k)\n\n"
+            "# KNN REGRESSION (continuous/numeric response), verified in your materials\n"
+            "# (exam_ref_supervised_regression.R, PATTERN 2):\n"
+            "library(caret)\n"
+            "knn_model <- knnreg(y ~ ., data = train, k = k)\n"
+            "pred <- predict(knn_model, newdata = test)"
+        ),
         pitfalls=(
-            "knn() is demonstrated in your materials (ISLR2 ch.4). It takes train/test/cl/k "
-            "in that order; predictors should be scaled first with scale(), and "
-            "train_x/test_x must exclude the response column."
+            "These are two different functions for two different tasks -- check which one "
+            "the question actually asks for before picking. class::knn() is CLASSIFICATION "
+            "ONLY: cl must be a factor of class labels, and it takes train/test/cl/k in that "
+            "order (predictors scaled first with scale(), train_x/test_x excluding the "
+            "response column). If the question says 'KNN regression' or the response is a "
+            "continuous/numeric variable (e.g. predicting mpg, price, temperature), "
+            "class::knn() is the WRONG function -- use caret::knnreg(formula, data, k) "
+            "instead, exactly as demonstrated in exam_ref_supervised_regression.R."
         ),
     ),
     "lda_qda": ReferenceEntry(
